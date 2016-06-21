@@ -1,6 +1,6 @@
 <?php 
 /**
- * 合并排序
+ * 合并排序 
  * 通过按顺序合并两个有序数组来实现排序，算法复杂度为O(nlgn)
  */
 function merge($array, $start, $end){
