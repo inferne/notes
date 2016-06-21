@@ -1,3 +1,4 @@
+/* 银行卡校验算法 */
 #include <stdio.h>
 #include <string.h>
 
