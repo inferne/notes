@@ -1,3 +1,4 @@
+/* 算法导论2.3.1 合并算法 */
 #include <stdio.h>
 
 int main()
