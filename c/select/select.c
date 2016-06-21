@@ -1,3 +1,4 @@
+/* 算法导论9.3-最坏情况线性时间的选择 */
 #include <stdio.h>
 
 #define exchange(a,b) if(a != b){ a = a ^ b; b = a ^ b; a = a ^ b; };
