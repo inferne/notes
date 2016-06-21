@@ -1,3 +1,4 @@
+/* 算法导论9.2-以期望线性时间做选择 */
 #include <stdio.h>
 
 #define exchange(a,b) if(a != b){ a = a ^ b; b = a ^ b; a = a ^ b; };
