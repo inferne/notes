@@ -1,3 +1,4 @@
+/* 算法导论8.2-计数排序 */
 #include <stdio.h>
 
 int counting_sort(int *A, int *B, int length, int k);
