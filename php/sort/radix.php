@@ -1,6 +1,6 @@
 <?php 
 /**
- * 基数排序
+ * 基数排序 
  * 有n个d为k进制数，从这个n个数的最低位采用计数排序开始排序，然后再排次高位，一直到d位
  */
 function counting($array, $digit){
