@@ -1,3 +1,4 @@
+/* 算法导论7.1-快速排序 */
 #include <stdio.h>
 
 #define exchange(a,b) if(a != b){ a = a ^ b; b = a ^ b; a = a ^ b; };
