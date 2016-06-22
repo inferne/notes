@@ -21,6 +21,7 @@ void print_array(int *s, int n)
 // n个矩阵划分递归式
 // p(1) = 1;
 // p(n) = p(1)p(n-1)+...+p(k)p(n-k)+...+p(n-1)p(1);
+// 最小代价m[i,j]
 // m[i,j] = m[i,k] + m[k+1,j] + p(i-1)*p(k)*p(j)
 //        = m[i,k] + m[k+1,j] + A[i][0]*A[k+1][0]*A[j][1]
 // int matrix_chain_order(int *A, int i, int j){
