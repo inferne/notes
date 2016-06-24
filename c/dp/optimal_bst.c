@@ -29,7 +29,7 @@ void optimal_bst(float *p, float *q, int n)
     e    = (float *)malloc(sizeof(float) * n * n);
     w    = (float *)malloc(sizeof(float) * n * n);
     root = (float *)malloc(sizeof(float) * n * n);
-    
+    // 对包伪关键字d0的子树，需要计算e[1,0]，对包含伪关键字dn的子树，需要计算e[n+1,n]
     for(i = 1; i <= n; i++){
         *(e + i*n + i-1) = q[i-1];
         *(w + i*n + i-1) = q[i-1];
