@@ -1,19 +1,18 @@
 #include <stdio.h>
 #include <malloc.h>
 
+#define t 2
 #define TRUE 1
 #define FALSE 0
-
-static int t = 2;
 
 typedef struct _node node;
 
 struct _node
 {
-    int  n;
-    int  key[t];//节点包含的key
-    node c[t];//节点包含的孩子
-    int  leaf;//是否为叶子
+    int   n;
+    int   key[3];//节点包含的key
+    node  c[4];//节点包含的孩子
+    int   leaf;//是否为叶子
 };
 
 typedef struct _tree
@@ -241,4 +240,16 @@ void b_tree_delete(node x, int k)
             b_tree_delete(x.c[i], k);
         }
     }
+}
+
+int main()
+{
+    char s[] = {'F','S','Q','K','C','L','H','T','V','W','M','R','N','P','A','B','X','Y','D','Z','E'};
+    tree T = (tree *)malloc(sizeof(tree));
+    b_tree_create(T);
+    int i;
+    for(i = 0; i < sizeof(s); i++){
+        b_tree_insert(T, (int)s[i]);
+    }
+    return 0;
 }
