@@ -211,15 +211,15 @@ void b_tree_delete(node *x, int k)
             disk_read(x, i+1);
             //至少含有t个关键字(情况2a)
             if((x->c+i)->n > t-1){
-                //删除x->c+i中k的前驱,然后用前驱替换k
-                b_tree_delete(x->c+i, (x->c+i)->key[x->n]);
-                x->key[i] = (x->c+i)->key[x->n];
+                //删除x->c+i中k的前驱,用前驱替换k
+                b_tree_delete(x->c+i, (x->c+i)->key[(x->c+i)->n]);
+                x->key[i] = (x->c+i)->key[(x->c+i)->n];
             }
             //x->c+i含有t-1个关键字,x->c[i+1]至少含有t个关键字(情况2b)
             else if((x->c+i+1)->n > t-1){
-                //删除x->c[i+1]中k的后继,然后用后继替换k
-                b_tree_delete(x->c+i+1, (x->c+i+1)->key[1]);
+                //删除x->c[i+1]中k的后继,用后继替换k
                 x->key[i] = (x->c+i+1)->key[1];
+                b_tree_delete(x->c+i+1, (x->c+i+1)->key[1]);
             }
             //x->c+i和x->c[i+1]都含有t-1个关键字(情况2c)
             else{
@@ -236,19 +236,31 @@ void b_tree_delete(node *x, int k)
             disk_read(x, i+1);
             //x->c+i的相邻兄弟节点至少含有t个关键字(情况3a)
             if((x->c+i-1)->n > t-1){
-                (x->c+i)->key[1] = x->key[i];//x的key[i]下降到x->c+i[1]
+                //x的key[i]下降到x->c+i[1]
+                int j;
+                for(j = (x->c+i)->n; j >= 1; j--){
+                    (x->c+i)->key[j+1] = (x->c+i)->key[j];
+                }
+                (x->c+i)->key[j+1] = x->key[i];
                 x->key[i] = (x->c+i-1)->key[(x->c+i-1)->n];
+                if(!(x->c+i)->leaf){
+                    for(j = (x->c+i)->n+1; j >= 1; j--){
+                        *((x->c+i)->c+j+1) = *((x->c+i)->c+j);
+                    }
+                    (x->c+i)->c+1 = (x->c+i-1)->c+x->c+i-1)->n+1;//把x->c+i+1的孩子给x->c+i
+                }
+                (x->c+i)->n += 1;
                 //删除k在左兄弟中的前驱
-                i--;
-                k = (x->c+i)->key[(x->c+i)->n];
-                //b_tree_delete(x->c[i-1], (x->c+i-1)->key[(x->c+i-1)->n]);
+                b_tree_delete_key(x->c+i-1, (x->c+i-1)->n);
             }else if((x->c+i+1)->n > t-1){
-                (x->c+i)->key[(x->c+i)->n] = x->key[i];//x的key[i]下降到(x->c+i)->key[n]
+                (x->c+i)->key[(x->c+i)->n+1] = x->key[i];//x的key[i]下降到(x->c+i)->key[n]
                 x->key[i] = (x->c+i+1)->key[1];
+                if(!(x->c+i)->leaf){
+                    (x->c+i)->c+(x->c+i)->n+2 = (x->c+i+1)->c+1;//把x->c+i+1的孩子给x->c+i
+                }
+                (x->c+i)->n += 1;
                 //删除k在右兄弟中的后继
-                i++;
-                k = (x->c+i)->key[1];
-                //b_tree_delete(x->c[i+1], (x->c+i+1)->key[1]);
+                b_tree_delete_key(x->c+i+1, 1);
             }
             //x->c[i-1]和x->c[i+1]含有t-1个关键字(情况3b)
             else{
