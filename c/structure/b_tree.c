@@ -195,11 +195,11 @@ void b_tree_delete_key(node *x, int i)
     disk_write(x);
 }
 //删除
-void b_tree_delete(node *x, int k)
+void b_tree_delete(tree *T, node *x, int k)
 {
     int i = 1;
     //在x节点中移动i到一个不小于k的位置
-    while(i <= x->n && k < x->key[i]){
+    while(i <= x->n && x->key[i] < k){
         i++;
     }
     if(x->key[i] == k){//k在x中
@@ -212,14 +212,14 @@ void b_tree_delete(node *x, int k)
             //至少含有t个关键字(情况2a)
             if((x->c+i)->n > t-1){
                 //删除x->c+i中k的前驱,用前驱替换k
-                b_tree_delete(x->c+i, (x->c+i)->key[(x->c+i)->n]);
                 x->key[i] = (x->c+i)->key[(x->c+i)->n];
+                b_tree_delete(T, x->c+i, (x->c+i)->key[(x->c+i)->n]);
             }
             //x->c+i含有t-1个关键字,x->c[i+1]至少含有t个关键字(情况2b)
             else if((x->c+i+1)->n > t-1){
                 //删除x->c[i+1]中k的后继,用后继替换k
                 x->key[i] = (x->c+i+1)->key[1];
-                b_tree_delete(x->c+i+1, (x->c+i+1)->key[1]);
+                b_tree_delete(T, x->c+i+1, (x->c+i+1)->key[1]);
             }
             //x->c+i和x->c[i+1]都含有t-1个关键字(情况2c)
             else{
@@ -229,37 +229,42 @@ void b_tree_delete(node *x, int k)
                 b_tree_delete_key(x, i);
             }
         }
-    }else{//k不在x中(情况3)
+    }else if(!x->leaf){//x不是叶子节点且k不在x中(情况3)
         disk_read(x, i);
         if((x->c+i)->n == t-1){//x->c+i含有t-1个关键字
             disk_read(x, i-1);
             disk_read(x, i+1);
             //x->c+i的相邻兄弟节点至少含有t个关键字(情况3a)
-            if((x->c+i-1)->n > t-1){
-                //x的key[i]下降到x->c+i[1]
+            if((x->c+i-1)->n >= t){
+                //检查k是否在x->c+i-1中
+                //x的key[i-1]下降到x->c+i[1]
                 int j;
                 for(j = (x->c+i)->n; j >= 1; j--){
                     (x->c+i)->key[j+1] = (x->c+i)->key[j];
                 }
-                (x->c+i)->key[j+1] = x->key[i];
-                x->key[i] = (x->c+i-1)->key[(x->c+i-1)->n];
+                (x->c+i)->key[j+1] = x->key[i-1];
+                x->key[i-1] = (x->c+i-1)->key[(x->c+i-1)->n];
                 if(!(x->c+i)->leaf){
                     for(j = (x->c+i)->n+1; j >= 1; j--){
                         *((x->c+i)->c+j+1) = *((x->c+i)->c+j);
                     }
-                    (x->c+i)->c+1 = (x->c+i-1)->c+x->c+i-1)->n+1;//把x->c+i+1的孩子给x->c+i
+                    //把x->c+i+1的最后一个孩子给x->c+i
+                    *((x->c+i)->c+1) = *((x->c+i-1)->c+(x->c+i-1)->n+1);
                 }
                 (x->c+i)->n += 1;
                 //删除k在左兄弟中的前驱
                 b_tree_delete_key(x->c+i-1, (x->c+i-1)->n);
-            }else if((x->c+i+1)->n > t-1){
-                (x->c+i)->key[(x->c+i)->n+1] = x->key[i];//x的key[i]下降到(x->c+i)->key[n]
+            }else if((x->c+i+1)->n >= t && i <= x->n){//i <= x->n条件避免使用已删除的节点
+                //x的key[i]下降到(x->c+i)->key[n]
+                (x->c+i)->key[(x->c+i)->n+1] = x->key[i];
                 x->key[i] = (x->c+i+1)->key[1];
                 if(!(x->c+i)->leaf){
-                    (x->c+i)->c+(x->c+i)->n+2 = (x->c+i+1)->c+1;//把x->c+i+1的孩子给x->c+i
+                    //把x->c+i+1的第一个孩子给x->c+i
+                    *((x->c+i)->c+(x->c+i)->n+2) = *((x->c+i+1)->c+1);
                 }
                 (x->c+i)->n += 1;
                 //删除k在右兄弟中的后继
+                *((x->c+i+1)->c+1) = *((x->c+i+1)->c+2);
                 b_tree_delete_key(x->c+i+1, 1);
             }
             //x->c[i-1]和x->c[i+1]含有t-1个关键字(情况3b)
@@ -271,9 +276,14 @@ void b_tree_delete(node *x, int k)
                 (x->c+i)->key[t] = x->key[i];
                 (x->c+i)->n += 1;
                 b_tree_merge_node(x->c+i, x->c+i+1);
+                b_tree_delete_key(x, i);
+                //当根节点被合并且为空节点
+                if(x == T->root && x->n == 0){
+                    T->root = x->c+i;
+                }
             }
         }
-        b_tree_delete(x->c+i, k);
+        b_tree_delete(T, x->c+i, k);
     }
 }
 /**
@@ -330,23 +340,76 @@ void print_btree(node *x, int *A, int n, int m, int i, int s, int e)
 int main()
 {
     char s[] = "FSQKCLHTVWMRNPABXYDZE";
-    char d[] = "FMGDB";
+    char d[] = "DTBCMP";
     tree *T = (tree *)malloc(sizeof(tree));
     b_tree_create(T);
     int i;
+    printf("create tree\n");
     for(i = 0; i < sizeof(s) - 1; i++){
         // printf("insert:%-4d", (int)s[i]);
         b_tree_insert(T, (int)s[i]);
     }
     int *A;
-    int n = 7,m = 64;
+    int n = 5,m = 64;
     A = (int *)malloc(sizeof(int) * n * m);
     print_btree(T->root, A, n, m, 0, 0, m);
-    printf("\n");
+    
     for(i = 0; i < sizeof(d) - 1; i++){
-        b_tree_delete(T->root, (int)d[i]);
-        printf("%4d", (int)d[i]);
+        printf("--------------------------------------------------------------------\n");
+        printf("delete:%c\n", d[i]);
+        b_tree_delete(T, T->root, (int)d[i]);
+        A = (int *)malloc(sizeof(int) * n * m);
+        print_btree(T->root, A, n, m, 0, 0, m);
     }
     printf("\n");
     return 0;
 }
+
+// create tree
+//                                KQ                               
+//                      /         /          \                     
+//          BF                    M                   TW           
+//       /   |  \              /    \              /   |  \        
+//    A     CDE     H        L        NP       RS      V     XYZ   
+// --------------------------------------------------------------------
+// delete:D    情况1-D在叶子上
+//                                KQ                               
+//                      /         /          \                     
+//          BF                    M                   TW           
+//       /   |  \              /    \              /   |  \        
+//    A     CE      H        L        NP       RS      V     XYZ   
+// --------------------------------------------------------------------
+// delete:T    情况2a-T在内部节点上，且左孩子的n>t
+//                                KQ                               
+//                      /         /          \                     
+//          BF                    M                   SW           
+//       /   |  \              /    \              /   |  \        
+//    A     CE      H        L        NP        R      V     XYZ   
+// --------------------------------------------------------------------
+// delete:B    情况2b-B在内部节点上，且右孩子的n>t
+//                                KQ                               
+//                      /         /          \                     
+//          CF                    M                   SW           
+//       /   |  \              /    \              /   |  \        
+//    A      E      H        L        NP        R      V     XYZ   
+// --------------------------------------------------------------------
+// delete:C    情况2c-C在内部节点上，且左右孩子n=t-1
+//                                KQ                               
+//                      /         /          \                     
+//           F                    M                   SW           
+//        /    \               /    \              /   |  \        
+//     AE         H          L        NP        R      V     XYZ   
+// --------------------------------------------------------------------  
+// delete:M    情况3a-M在内部节点上，且右兄弟n>=t
+//                                KS                               
+//                      /         /          \                     
+//           F                   NQ                    W           
+//        /    \              /   |  \              /    \         
+//     AE         H        L      P      R        V        XYZ     
+// --------------------------------------------------------------------
+// delete:P    情况3b-P在页节点上，且右兄弟n=t-1
+//                                KS                               
+//                      /         /          \                     
+//           F                    Q                    W           
+//        /    \               /    \               /    \         
+//     AE         H         LN         R          V        XYZ     
