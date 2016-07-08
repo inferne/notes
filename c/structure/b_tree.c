@@ -164,6 +164,24 @@ void b_tree_create(tree *T)
     T->root = x;
     // print_node(T->root);
 }
+//前驱
+b_tree_predecessor(node *x)
+{
+    //直接找到x的最右叶子节点
+    while(!x->leaf){
+        x = x->c+x->n+1;
+    }
+    return x->key[x->n];
+}
+//后继
+b_tree_successor(node *x)
+{
+    //直接找到x的最左叶子节点
+    while(!x->leaf){
+        x = x->c+1;
+    }
+    return x->key[1];
+}
 //合并两个节点
 void b_tree_merge_node(node *x, node *y)
 {
@@ -212,14 +230,14 @@ void b_tree_delete(tree *T, node *x, int k)
             //至少含有t个关键字(情况2a)
             if((x->c+i)->n > t-1){
                 //删除x->c+i中k的前驱,用前驱替换k
-                x->key[i] = (x->c+i)->key[(x->c+i)->n];
-                b_tree_delete(T, x->c+i, (x->c+i)->key[(x->c+i)->n]);
+                x->key[i] = b_tree_predecessor(x->c+i);
+                b_tree_delete(T, x->c+i, x->key[i]);
             }
             //x->c+i含有t-1个关键字,x->c[i+1]至少含有t个关键字(情况2b)
             else if((x->c+i+1)->n > t-1){
                 //删除x->c[i+1]中k的后继,用后继替换k
-                x->key[i] = (x->c+i+1)->key[1];
-                b_tree_delete(T, x->c+i+1, (x->c+i+1)->key[1]);
+                x->key[i] = b_tree_successor(x->c+i+1);
+                b_tree_delete(T, x->c+i+1, x->key[i]);
             }
             //x->c+i和x->c[i+1]都含有t-1个关键字(情况2c)
             else{
@@ -227,6 +245,10 @@ void b_tree_delete(tree *T, node *x, int k)
                 b_tree_merge_node(x->c+i, x->c+i+1);
                 //删除key[i]
                 b_tree_delete_key(x, i);
+                //当根节点被合并且为空节点
+                if(x == T->root && x->n == 0){
+                    T->root = x->c+i;
+                }
             }
         }
     }else if(!x->leaf){//x不是叶子节点且k不在x中(情况3)
