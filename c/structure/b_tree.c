@@ -165,7 +165,7 @@ void b_tree_create(tree *T)
     // print_node(T->root);
 }
 //前驱
-b_tree_predecessor(node *x)
+int b_tree_predecessor(node *x)
 {
     //直接找到x的最右叶子节点
     while(!x->leaf){
@@ -174,7 +174,7 @@ b_tree_predecessor(node *x)
     return x->key[x->n];
 }
 //后继
-b_tree_successor(node *x)
+int b_tree_successor(node *x)
 {
     //直接找到x的最左叶子节点
     while(!x->leaf){
