@@ -1,5 +1,10 @@
 <?php 
-
+/**
+ * worker
+ * @author liyunfei
+ *
+ */
+ 
 class Worker
 {
     //worker process number
@@ -19,7 +24,7 @@ class Worker
     
     public function __construct() {
         $this->queue = msg_get_queue(ftok(__FILE__, 'R'), 0666);
-        $this->log_file = 'Worker.log';
+        //$this->log_file = 'Worker.log';
     }
     
     /**
@@ -110,7 +115,7 @@ class Worker
             $message = '';
             //只接收msgtype=$pid的消息
             if(msg_receive($this->queue, $pid, $msgtype, $this->max_size, $message)){
-                $this->log("receive $message strlen[".strlen($message).']');
+                //$this->log("receive $message strlen[".strlen($message).']');
                 if(trim($message) == "exit()"){
                     $this->log("process exit!");
                     exit();
@@ -127,7 +132,7 @@ class Worker
      * @param string $message
      * @param int    $id
      */
-    public function send($message, $id=-1){
+    public function send($message, $id = -1){
         if($id == -1){
             $i = sprintf("%u", crc32($message)) % $this->worker_num;
         }else{
@@ -157,7 +162,7 @@ class Worker
      */
     public function log($message){
         $message = date("Y-m-d H:i:s").' '.posix_getpid().' '.$message.PHP_EOL;
-        if(!$this->daemonize){
+        if(!$this->daemonize || !$this->log_file){
             echo $message;
         }else{
             error_log($message, 3, $this->log_file);
