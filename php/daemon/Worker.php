@@ -20,10 +20,15 @@ class Worker
     //log file
     public $log_file;
     //max message size
-    public $max_size = 1024;
+    public $max_size = 4096;
     
     public function __construct() {
-        $this->queue = msg_get_queue(ftok(__FILE__, 'R'), 0666);
+        $key = ftok(__FILE__, 'R');
+        if(msg_queue_exists($key)){
+            $this->queue = msg_get_queue($key, 0666);
+            msg_remove_queue($this->queue);
+        }
+        $this->queue = msg_get_queue($key, 0666);
         //$this->log_file = 'Worker.log';
     }
     
@@ -113,15 +118,20 @@ class Worker
         while (1){
             $msgtype = '';
             $message = '';
+            $errcode = 0;
             //只接收msgtype=$pid的消息
-            if(msg_receive($this->queue, $pid, $msgtype, $this->max_size, $message)){
-                //$this->log("receive $message strlen[".strlen($message).']');
+            if(msg_receive($this->queue, $pid, $msgtype, $this->max_size, $message, false, 0, $errcode)){
+                //$this->log("receive $message strlen[".strlen($message).'] msgtype:'.$msgtype);
                 if(trim($message) == "exit()"){
                     $this->log("process exit!");
                     exit();
                 }else{
                     call_user_func($this->onRecive, $this, $message);
                 }
+            }
+            if($errcode > 0){
+                $this->log("receive errcode:".$errcode);
+                sleep(1);
             }
             usleep(100);
         }
@@ -138,7 +148,19 @@ class Worker
         }else{
             $i = $id % $this->worker_num;
         }
-        msg_send($this->queue, $this->arr_worker[$i], $message);
+        $j = 100;//最大重试次数
+        do{
+            //$this->log("send ".$message);
+            $errcode = 0;
+            $result = @msg_send($this->queue, $this->arr_worker[$i], $message, false, true, $errcode);
+            //send failed retry
+            if(!$result){
+                $this->log("send errcode:".$errcode);
+                sleep(1);
+                $j--;
+            }
+        } while(!$result && $j);
+        return $result;
     }
 
     /**
@@ -147,7 +169,7 @@ class Worker
     public function stop(){
         foreach ($this->arr_worker as $pid){
             //发送消息类型为$pid的message
-            if(msg_send($this->queue, $pid, "exit()")){
+            if(msg_send($this->queue, $pid, "exit()", false)){
                 $pid = pcntl_wait($status);
                 $this->log("recover child process $pid");
                 unset($this->arr_worker[$pid]);
