@@ -23,6 +23,10 @@ class Worker
     public $max_size = 4096;
     
     public function __construct() {
+        $this->init();
+    }
+    
+    public function init(){
         $key = ftok(__FILE__, 'R');
         if(msg_queue_exists($key)){
             $this->queue = msg_get_queue($key, 0666);
@@ -66,7 +70,7 @@ class Worker
      */
     public function options(){
         $short = "c:d::";
-        $longopts = array('help');
+        $longopts = array('stop', 'help');
         $options = getopt($short, $longopts);
         if(isset($options['c']) && $options['c'] > 0){
             $this->worker_num = $options['c'];
@@ -74,10 +78,16 @@ class Worker
         if(isset($options['d'])){
             $this->daemonize = true;
         }
+        if(isset($options['stop'])){
+            global $argv;
+            exec("kill `ps -ef|grep ".$argv[0]."|grep -v grep|grep -v vi|awk '{print $2}'`");
+            exit();
+        }
         if(isset($options['help'])){
             echo "if user set options and set config, options is first vaild!".PHP_EOL;
             echo "-c <number>    worker number".PHP_EOL;
             echo "-d             daemonize".PHP_EOL;
+            echo "--stop         stop all worker".PHP_EOL;
             echo "--help         help".PHP_EOL;
             exit();
         }
@@ -178,6 +188,8 @@ class Worker
         msg_remove_queue($this->queue);//destory a message queue
     }
 
+    private $index = 0;
+    
     /**
      * log
      * @param unknown $message
@@ -187,7 +199,15 @@ class Worker
         if(!$this->daemonize || !$this->log_file){
             echo $message;
         }else{
-            error_log($message, 3, $this->log_file);
+            $filename = $this->log_file.sprintf("%04d", $this->index);
+            $stat = stat($filename);
+            //日志文件大小大于2G则更换文件
+            while($stat['size'] >= 2 * 1024 * 1024 * 1024){
+                $this->index++;
+                $filename = $this->log_file.sprintf("%04d", $this->index);
+                $stat = stat($filename);
+            }
+            error_log($message, 3, $filename);
         }
     }
 }
