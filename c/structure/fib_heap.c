@@ -27,7 +27,7 @@ typedef struct _heap
 } heap;
 
 void print_fib_node(node *x);
-void print_fib_heap(node *x);
+void print_fib_heap(node *x, int *A, int n, int m, int i, int j);
 
 int D(int n)
 {
@@ -125,33 +125,34 @@ void consolidate(heap *H)
 {
     int i = 0, d = D(H->n);
     //let A[0, D(H.n) be a new array]
-    node *A[d], *x = NULL, *y = NULL, *w = NULL;
+    node *A[d+1], *x = NULL, *y = NULL, *z = NULL, *w = NULL;
     //A = (node *)malloc(sizeof(node) * d);
     while(i <= d){
         A[i] = NULL;
         i++;
     }
-    //for each node x in the root list of H
-    x = H->min;
+    //for each node w in the root list of H
+    w = H->min;
     do{
+        x = w;
+        w = w->right;//move w
         d = x->degree;
         while(A[d] != NULL){
             y = A[d]; //another node with the same drgree as x
             //sure x->key < y->key
             if(x->key > y->key){
-                w = x;
+                z = x;
                 x = y;
-                y = w;
+                y = z;
             }
             fib_heap_link(H, x, y);
             A[d] = NULL;
             d = d + 1;
         }
         A[d] = x;
-        x = x->right;//move x
-    } while(x != H->min);
+    } while(w != H->min);
     H->min = NULL;
-    for(i = 0; i <= sizeof(A)/sizeof(node *); i++){
+    for(i = 0; i < sizeof(A)/sizeof(node *); i++){
         if(A[i] != NULL){
             if(H->min == NULL){
                 //create a root list for H containing just A[i]
@@ -170,20 +171,18 @@ void consolidate(heap *H)
 node * fib_heap_extract_min(heap *H)
 {
     int i;
-    node *z = H->min, *x = NULL;
+    node *z = H->min, *x = NULL, *y = NULL;
     if(z != NULL){
         //for each child x of z
         if(z->child != NULL){
-            x = z->child;
+            y = z->child;
             do{
-                printf("---------------------------------------\n");
-                x = x->left;
+                x = y;
+                y = y->right;
                 //add x to root list of H
-                print_fib_node(H->min);
-                print_fib_node(x->right);
-                fib_heap_add(H->min, x->right);
-                print_fib_node(H->min);
-            }while(z->child != x);
+                x->p = NULL;
+                fib_heap_add(H->min, x);
+            }while(z->child != y);
         }
         //remove z from the root list of H
         fib_heap_remove(z);
@@ -241,8 +240,6 @@ void fib_heap_decrease_key(heap *H, node *x, int k)
 void fib_heap_delete(heap *H, node *x)
 {
     fib_heap_decrease_key(H, x, -1);
-    printf("-------------------------------------------------\n");
-    print_fib_heap(H->min);
     fib_heap_extract_min(H);
 }
 
@@ -252,33 +249,51 @@ void print_fib_node(node *x)
         x, x->key, x->p, x->left, x->right, x->child, x->degree, x->mark);
 }
 
-void print_fib_heap(node *x)
-{
-    // int k = 0;
-    // node *y = x;
-    // while(k == 0 || y != x){
-    //     *(A + i*n + j) = y->key;
-    //     if(y->child != NULL){
-    //         *(A + (i+1)*n + j+1) = -1;
-    //         print_fib_heap(y->child, A, m, n, i+2, j);
-    //     }
-    //     y = y->right;
-    //     k++;
-    //     j += 2;
-    // }
+// void print_fib_heap(node *x)
+// {
+//     int k = 0;
+//     node *y = x;
+//     while(k == 0 || y != x){
+//         printf("%4d", y->key);;
+//         if(y->child != NULL){
+//             printf("\n");
+//             print_fib_heap(y->child);
+//         }
+//         y = y->right;
+//         k++;
+//     }
+//     printf("\n");
+// }
 
-    int k = 0;
+void print_fib_heap(node *x, int *A, int n, int m, int i, int j)
+{
+    int b = 0;
     node *y = x;
-    while(k == 0 || y != x){
-        printf("%4d", y->key);;
-        if(y->child != NULL){
-            printf("\n");
-            print_fib_heap(y->child);
+    do{
+        j + 1;
+        j = j + x->degree/2;//x的横向位置
+        *(A+i*n+j) = x->key;
+        if(x->child != NULL){
+            print_fib_heap(x->child, A, n, m, i+2, j);
         }
-        y = y->right;
-        k++;
+        j = j + x->degree/2;//x的横向位置
+        x = x->right;
+    } while(x != y);
+
+    if(i == 0){//遍历输出
+        int k;
+        for(i = 0; i < n; i++){
+            for(j = 0; j < m; j++){
+                k = *(A + (i * m + j)); 
+                if(k == 0){
+                    printf(" ");
+                }else{
+                    printf("%d", k);
+                }
+            }
+            printf("\n");
+        }
     }
-    printf("\n");
 }
 
 int main()
@@ -294,16 +309,19 @@ int main()
         fib_heap_insert(H, x);
     }
 
-    print_fib_heap(H->min);
+    int *B = NULL, n = 64, m = 10;
+    B = (int *)malloc(sizeof(int) * n * m);
 
-    x = fib_heap_extract_min(H);
-    printf("------------------------------------------------------------\n");
-    print_fib_node(x);
-    print_fib_heap(H->min);
+    print_fib_heap(H->min, B, n, m, 0, 0);
 
-    fib_heap_delete(H, H->min);
-    printf("------------------------------------------------------------\n");
-    print_fib_heap(H->min);
+    // printf("fib_heap_extract_min------------------------------------------------------------\n");
+    // x = fib_heap_extract_min(H);
+    // print_fib_node(x);
+    // print_fib_heap(H->min);
+
+    // printf("fib_heap_delete------------------------------------------------------------\n");
+    // fib_heap_delete(H, H->min);
+    // print_fib_heap(H->min);
 
     return 0;
 }
