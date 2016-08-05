@@ -249,22 +249,6 @@ void print_fib_node(node *x)
         x, x->key, x->p, x->left, x->right, x->child, x->degree, x->mark);
 }
 
-// void print_fib_heap(node *x)
-// {
-//     int k = 0;
-//     node *y = x;
-//     while(k == 0 || y != x){
-//         printf("%4d", y->key);;
-//         if(y->child != NULL){
-//             printf("\n");
-//             print_fib_heap(y->child);
-//         }
-//         y = y->right;
-//         k++;
-//     }
-//     printf("\n");
-// }
-
 void print_fib_heap(node *x, int *A, int n, int m, int i, int j)
 {
     int b = 0, p = 0;
