@@ -249,35 +249,25 @@ void print_fib_node(node *x)
         x, x->key, x->p, x->left, x->right, x->child, x->degree, x->mark);
 }
 
-// void print_fib_heap(node *x)
-// {
-//     int k = 0;
-//     node *y = x;
-//     while(k == 0 || y != x){
-//         printf("%4d", y->key);;
-//         if(y->child != NULL){
-//             printf("\n");
-//             print_fib_heap(y->child);
-//         }
-//         y = y->right;
-//         k++;
-//     }
-//     printf("\n");
-// }
-
 void print_fib_heap(node *x, int *A, int n, int m, int i, int j)
 {
-    int b = 0;
+    int b = 0, p = 0;
+    int width = 0;
     node *y = x;
     do{
-        j + 1;
-        j = j + x->degree/2;//x的横向位置
-        *(A+i*n+j) = x->key;
+        *(A+i*m+j) = x->key;//节点位置
         if(x->child != NULL){
+            *(A+(i+1)*m+j) = -1;//|位置
             print_fib_heap(x->child, A, n, m, i+2, j);
         }
-        j = j + x->degree/2;//x的横向位置
+        width = 1 << x->degree;
         x = x->right;
+        if(x != y){
+            for(p = 1; p <= width; p++){
+                *(A+i*m+j+p) = -2;//-位置
+            }
+        }
+        j = j + width + 1;//下一个节点开始位置
     } while(x != y);
 
     if(i == 0){//遍历输出
@@ -286,9 +276,13 @@ void print_fib_heap(node *x, int *A, int n, int m, int i, int j)
             for(j = 0; j < m; j++){
                 k = *(A + (i * m + j)); 
                 if(k == 0){
-                    printf(" ");
+                    printf("  ");
+                }else if(k == -1){
+                    printf(" |");
+                }else if(k == -2){
+                    printf("--");
                 }else{
-                    printf("%d", k);
+                    printf("%2d", k);
                 }
             }
             printf("\n");
@@ -309,19 +303,48 @@ int main()
         fib_heap_insert(H, x);
     }
 
-    int *B = NULL, n = 64, m = 10;
+    int *B = NULL, n = 10, m = 64;
     B = (int *)malloc(sizeof(int) * n * m);
 
-    print_fib_heap(H->min, B, n, m, 0, 0);
+    printf("print_fib_heap\n");
+    printf("------------------------------------------------------------\n");
+    print_fib_heap(H->min, B, 1, m, 0, 1);
 
-    // printf("fib_heap_extract_min------------------------------------------------------------\n");
-    // x = fib_heap_extract_min(H);
-    // print_fib_node(x);
-    // print_fib_heap(H->min);
+    printf("fib_heap_extract_min\n");
+    printf("------------------------------------------------------------\n");
+    x = fib_heap_extract_min(H);
+    print_fib_node(x);
+    B = (int *)malloc(sizeof(int) * n * m);
+    print_fib_heap(H->min, B, 7, m, 0, 1);
 
-    // printf("fib_heap_delete------------------------------------------------------------\n");
-    // fib_heap_delete(H, H->min);
-    // print_fib_heap(H->min);
+    printf("fib_heap_delete(%d)\n", H->min->key);
+    printf("------------------------------------------------------------\n");
+    fib_heap_delete(H, H->min);
+    B = (int *)malloc(sizeof(int) * n * m);
+    print_fib_heap(H->min, B, 7, m, 0, 1);
 
     return 0;
 }
+
+// print_fib_heap
+// ------------------------------------------------------------
+//    3-- 7--23--21--18--52--38--39--41--17--30--24--26--46--35
+// fib_heap_extract_min
+// ------------------------------------------------------------
+// x=0x7cf0f0,key=3,p=(nil),left=0x7cf3b0,right=0x7cf070,child=(nil),degree=0,mark=0
+//    7----------------17--------35                            
+//    |                 |         |                            
+//   23--18----38      30--24    46                            
+//        |     |           |                                  
+//       21    52--39      26                                  
+//                  |                                          
+//                 41                                          
+// fib_heap_delete(7)
+// ------------------------------------------------------------
+//   17----------------23--38                                  
+//    |                     |                                  
+//   30--24----18          52--39                              
+//        |     |               |                              
+//       26    21--35          41                              
+//                  |                                          
+//                 46                                          
