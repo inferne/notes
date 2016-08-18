@@ -15,8 +15,10 @@ class Worker
     public $arr_worker = array();
     //sysvmsg queue
     public $queue;
-    
+
     public $onRecive;
+    
+    public $onStart;
     //log file
     public $log_file;
     //max message size
@@ -57,6 +59,9 @@ class Worker
             if( $pid > 0 ){
                 $this->arr_worker[$i] = $pid;
             }else if($pid == 0){
+                if($this->onStart){
+                    call_user_func($this->onStart, $this);
+                }
                 $this->loop();
             }else{
                 throw new Exception("fork error!");
