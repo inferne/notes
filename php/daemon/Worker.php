@@ -55,18 +55,9 @@ class Worker
         $this->options();//parse options
         $this->daemonize();
         for ($i = 0; $i < $this->worker_num; $i++){
-            $pid = pcntl_fork();
-            if( $pid > 0 ){
-                $this->arr_worker[$i] = $pid;
-            }else if($pid == 0){
-                if($this->onStart){
-                    call_user_func($this->onStart, $this);
-                }
-                $this->loop();
-            }else{
-                throw new Exception("fork error!");
-            }
+            $this->fork_child($i);
         }
+        //$this->monitor();
         sleep(1);//睡一觉（进程同步）
     }
 
@@ -124,6 +115,33 @@ class Worker
             exit(0);
         }
     }
+    /* 
+    public function monitor(){
+        while (1){
+            $pid = pcntl_wait($status);
+            $this->arr_worker[$pid];
+            $this->fork_child();
+        }
+    }
+     */
+    
+    /**
+     * fork a child process
+     * @throws Exception
+     */
+    public function fork_child($i){
+        $pid = pcntl_fork();
+        if( $pid > 0 ){
+            $this->arr_worker[$i] = $pid;
+        }else if($pid == 0){
+            if($this->onStart){
+                call_user_func($this->onStart, $this);
+            }
+            $this->loop();
+        }else{
+            throw new Exception("fork error!");
+        }
+    }
     
     /**
      * 轮询
@@ -152,17 +170,21 @@ class Worker
         }
     }
     
+    public $i = 0;
+    
     /**
      * 发送数据
      * @param string $message
      * @param int    $id
      */
     public function send($message, $id = -1){
-        if($id == -1){
-            $i = sprintf("%u", crc32($message)) % $this->worker_num;
-        }else{
-            $i = $id % $this->worker_num;
-        }
+        //if($id == -1){
+        //    $i = sprintf("%u", crc32($message)) % $this->worker_num;
+        //}else{
+        //    $i = $id % $this->worker_num;
+        //}
+        $i = $this->i % $this->worker_num;
+        $this->i++;
         $j = 100;//最大重试次数
         do{
             //$this->log("send ".$message);
@@ -187,7 +209,7 @@ class Worker
             if(msg_send($this->queue, $pid, "exit()", false)){
                 $pid = pcntl_wait($status);
                 $this->log("recover child process $pid");
-                unset($this->arr_worker[$pid]);
+                unset($this->arr_worker[array_search($pid, $this->arr_worker)]);
             }
         }
         msg_remove_queue($this->queue);//destory a message queue
