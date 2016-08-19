@@ -9,7 +9,7 @@ define("ROOT_PATH", __DIR__);
 
 class Autoload
 {
-    public static function init($class){
+    public static function load($class){
         if(strpos("\\", $class) === 0){
             $class = str_replace("\\", "//", $class);
             if(is_file(ROOT_PATH.$class.".php")){
