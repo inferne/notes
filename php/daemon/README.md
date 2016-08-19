@@ -19,7 +19,7 @@ sysvmsg<br/>
 * max_size
     * define a message max size(byte)
 * block
-    * set send message and receive message block
+    * bool true or false,set send message and receive message block
 * set()
     * set your config valid
 * run()
