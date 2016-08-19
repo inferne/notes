@@ -127,7 +127,7 @@ class Database
      * @param unknown $arr_where
      * @return mixed
      */
-    public function updateByCondition($table, $arr_data, $arr_where){
+    public function update($table, $arr_data, $arr_where){
         $set = "";
         foreach ($arr_data as $key => $value){
             $set .= ($set ? ',': '')."`$key` = ".$value;
