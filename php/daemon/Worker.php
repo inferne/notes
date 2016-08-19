@@ -16,7 +16,7 @@ class Worker
     //sysvmsg queue
     public $queue;
 
-    public $onRecive;
+    public $onReceive;
     
     public $onStart;
     //log file
@@ -165,7 +165,7 @@ class Worker
                     $this->log("process exit!");
                     exit();
                 }else{
-                    call_user_func($this->onRecive, $this, $message);
+                    call_user_func($this->onReceive, $this, $message);
                 }
             }
             if($errcode > 0){
