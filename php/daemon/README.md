@@ -1,12 +1,24 @@
 # 多进程类Worker
 ==============
 
-依赖拓展
-pcntl
-posix
-sysvmsg
-进程间使用sysvmsg进行通讯
-
+依赖拓展<br/>
+pcntl<br/>
+posix<br/>
+sysvmsg<br/>
+进程间使用sysvmsg进行通讯<br/>
+Worker.php
+* worker_num-----------------worker process number
+* daemonize------------------daemonize;
+* onReceive------------------when your child receive message execute function
+* onStart--------------------when your child start execute function
+* log_file-------------------define log file
+* max_size-------------------define one message max size
+* block----------------------set send and receive block
+* set()----------------------set config
+* run()----------------------run worker and create child
+* send()---------------------worker send message to child
+* stop()---------------------worker recyce child
+--------------------------
 ## 1 demo1
 -------
 假如你有一个队列，此示例适用于快速消费掉一个队列
@@ -21,7 +33,7 @@ $worker->set(array(
     'max_size'   => 128,
 ));
 
-$worker->onRecive = function(Worker $fd, $message){
+$worker->onReceive = function(Worker $fd, $message){
     echo $message;
 };
 $worker->run();
