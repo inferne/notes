@@ -6,17 +6,28 @@ posix<br/>
 sysvmsg<br/>
 进程间使用sysvmsg进行通讯<br/>
 ## Worker.php
-* worker_num-----------------worker process number
-* daemonize------------------daemonize;
-* onReceive------------------when your child receive message execute function
-* onStart--------------------when your child start execute function
-* log_file-------------------define log file
-* max_size-------------------define one message max size
-* block----------------------set send and receive block
-* set()----------------------set config
-* run()----------------------run worker and create child
-* send()---------------------worker send message to child
-* stop()---------------------worker recyce child
+* worker_num
+    * worker process number from 0 to 99999
+* daemonize
+    * bool true or false
+* onReceive
+    * when your child receive message execute this function
+* onStart
+    * when your child start execute this function
+* log_file
+    * define log filename
+* max_size
+    * define a message max size(byte)
+* block
+    * bool true or false,set send message and receive message block
+* set()
+    * set your config valid
+* run()
+    * run worker and create child process
+* send()
+    * worker send message to child process
+* stop()
+    * worker recyce child process
 
 ## 1 demo1
 
