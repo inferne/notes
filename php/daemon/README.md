@@ -1,5 +1,4 @@
-# 多进程类<br/>
-Worker.php
+# 多进程类
 ==============
 
 依赖拓展<br/>
@@ -7,7 +6,8 @@ pcntl<br/>
 posix<br/>
 sysvmsg<br/>
 进程间使用sysvmsg进行通讯<br/>
-Worker.php
+## Worker.php
+-----
 * worker_num-----------------worker process number
 * daemonize------------------daemonize;
 * onReceive------------------when your child receive message execute function
