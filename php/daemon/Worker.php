@@ -24,6 +24,8 @@ class Worker
     //max message size
     public $max_size = 4096;
     
+    public $block = true;
+    
     public function __construct() {
         $this->init();
     }
@@ -148,12 +150,16 @@ class Worker
      */
     public function loop(){
         $pid = posix_getpid();
+        $flags = 0;
+        if(!$this->block){//设置非阻塞
+            $flags = MSG_IPC_NOWAIT;
+        }
         while (1){
             $msgtype = '';
             $message = '';
             $errcode = 0;
             //只接收msgtype=$pid的消息
-            if(msg_receive($this->queue, $pid, $msgtype, $this->max_size, $message, false, 0, $errcode)){
+            if(msg_receive($this->queue, $pid, $msgtype, $this->max_size, $message, false, $flags, $errcode)){
                 //$this->log("receive $message strlen[".strlen($message).'] msgtype:'.$msgtype);
                 if(trim($message) == "exit()"){
                     $this->log("process exit!");
@@ -189,7 +195,7 @@ class Worker
         do{
             //$this->log("send ".$message);
             $errcode = 0;
-            $result = @msg_send($this->queue, $this->arr_worker[$i], $message, false, true, $errcode);
+            $result = @msg_send($this->queue, $this->arr_worker[$i], $message, false, $this->block, $errcode);
             //send failed retry
             if(!$result){
                 $this->log("send errcode:".$errcode);
