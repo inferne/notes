@@ -66,3 +66,131 @@ int inet_pton(int domain, const char *restrict str, void *restrict addr);
 * 参数size指定了用以保存文本字符串的缓冲区大小。
  * INET_ADDRSTRLEN定义了足够大的空间来存放表示IPv4地址的文本字符串
  * INET6_ADDRSTRLEN定义了足够大的空间来存放表示IPv6地址的文本字符串
+
+## 16.3 地址查询
+通过调用gethostent，可以找到给定计算机的主机信息
+```c
+#include <netdb.h>
+struct hostent *gethostent(void); //返回值：若成功则返回指针，若出错则返回NULL
+void sethostent(int stayopen);
+void endhostent(void);
+```
+
+获得网络名字和网络号
+```c
+#include <netdb.h>
+struct netent *getnetbyaddr(uint32_t net, int type);
+struct netent *getnetbyname(const char *name);
+struct netent *getnetent(void);
+//以上三个函数的返回值：若成功则返回指针，若出错则返回NULL
+void setnetent(int stayopen);
+void endnetent(void);
+```
+```c
+struct netent {
+    char    *n_name; /* network name */
+    char   **n_aliases; /* alternate network name array pointer */
+    int      n_addrtype; /* address type */
+    uint32_t n_net; /* network number */
+    ...
+};
+```
+网络好按照网络字节序返回。地址类型是一个地址族常量（例如AF_INET）。
+可以将协议名字和协议号采用一下函数映射。
+```c
+#include <netdb.h>
+struct protoent *getprotobyname(const char *name);
+struct protoent *getprotobynimber(int proto);
+struct protoent *getprotoent(void);
+//以上所有函数的返回值：若成功则返回指针，若出粗则返回NULL
+void setprotoent(int stayopen);
+void endprotoent(void);
+```
+POSIX.1定义的结构protoent至少包含如下成员
+```c
+struct protoent {
+    char  *p_name /* protocol name */
+    char **p_aliases; /* pointer to alternate protocol name array */
+    int    p_proto; /* protocol number */
+    ...
+};
+```
+
+服务是由地址的端口号部分表示的。每个服务由一个唯一的、熟知的端口号来提供。采用函数getservbyname可以将一个服务名字映射到一个端口号，函数getservbyport将一个端口号映射到一个服务名，或者采用函数getservent顺序扫描服务数据库。
+```c
+#include <netdb.h>
+struct servent *getservbyname(const char *name, const char *proto);
+struct servent *getservbyport(int port, const char *proto);
+struct servent *getservent(void);
+//以上所有函数的返回值：若成功则返回指针，若错粗则返回NULL
+void setservent(int stayopen);
+void endservent(void);
+```
+servent至少包含如下成员
+```c
+struct servent {
+    char   *s_name;    /* service name */
+    char  **s_aliases; /* pointer to alternate service name array */
+    int     s_port;    /* port number */
+    char   *s_proto;   /* name of protocol */
+    ...
+};
+```
+POSIX.1定义了若干新的函数，允许应用程序将一个主机名字和服务名字映射到一个地址，或者相反。这些函数代替老的函数gethostbyname和gethostbyaddr。
+函数getaddrinfo允许将一个主机名字和服务名字映射到一个地址。
+```c
+#include <sys/socket.h>
+#include <netdb.h>
+int getaddrinfo(const char *restrict host,const char *restrict service, 
+                const struct addrinfo *restrict hint, struct addrinfo **restrict res);
+                //返回值：若成功则返回0，若出错则返回非0错误码
+void freeaddrinfo(struct addrinfo *ai);
+```
+需要提供主机名字、服务名字，或者两者都提供。如果只提供一个名字，另一个则必须是一个空指针。主机名字可以是一个节点名或点分十进制表示的主机地址。
+函数getaddrinfo返回一个结构addrinfo的链表。可以用freeaddrinfo来释放一个或多个这种结构，这取决于ai_next字段链接起来的结构有多少。
+结构addrinfo的定义：
+```c
+struct addrinfo {
+    int             *ai_flags;     /* customize behavior */
+    int             *ai_family;    /* address family */
+    int             *ai_socktype;  /* socket type */
+    int             *ai_protocol;  /* protocol */
+    socklen_t       *ai_addrlen;   /* length in bytes of address */
+    struct sockaddr *ai_addr;      /* address */
+    char            *ai_canonname; /* canonical name of host */
+    struct addrinfo *ai_next;      /* next in list */
+    ...
+};
+```
+参数ai_flags所用的标志用来指定如何处理地址和名字
+* AI_ADDRCONFIG 查询配置的地址类型（IPv4和IPv6）
+* AI_ALL 查询IPv4和IPv6地址（仅用于AI_V4MAPPED）
+* AI_CANONNAME 需要一个规范名（而不是别名）
+* AI_NUMERICHOST 以数字格式返回主机地址
+* AI_NUMERICSERV 以端口号返回服务
+* AI_PASSIVE 套接字地址用于监听绑定
+* AI_V4MAPPED 如果没有找到IPv6地址，则返回映射到IPv6格式的IPv4地址
+如果getaddrinfo失败，不能使用perror或strerror来生成错误消息。而是调用gai_strerror将返回的错误码转换成错误消息。
+```c
+#include <netdb.h>
+const char *gai_strerror(int error); //返回值：指向描述符错误的字符串指针
+```
+函数getnameinfo将地址转换成主机名或者服务名。
+```c
+#include <sys/socket.h>
+#include <netdb.h>
+int getnameinfo(const struct sockaddr *restrict addr, 
+                socklen_t alen, char *restrict host, 
+                socklen_t hostlen, char *restrict service, 
+                socklen_t servlen, unsigned int flags); 
+                //返回值：若成功则返回0，若出错则返回非0值
+```
+套接字地址（addr）被转换成主机名或服务名。如果host非空，它指向一个长度为hostlen字节的缓冲区用于存储返回的主机名。同样，如果service非空，它只想一个长度为servlen字节的缓冲区用于存储返回的服务名。
+
+参数flags指定一些转换的控制方式，如下是系统支持的标志
+* NI_DGRAM 服务基于数据报而非基于流
+* NI_NAMEREQD 如果找不到主机名字，将其作为一个错误对待
+* NI_NOFQDN 对于本地主机，近返回完全限定域名的节点名字部分
+* NI_NUMERICHOST 以数字形式而非名字返回主机地址
+* NI_NUMERICSERV 以数字形式而非名字返回服务地址（即端口号）
+
