@@ -162,14 +162,14 @@ struct addrinfo {
     ...
 };
 ```
-参数ai_flags所用的标志用来指定如何处理地址和名字
-* AI_ADDRCONFIG 查询配置的地址类型（IPv4和IPv6）
-* AI_ALL 查询IPv4和IPv6地址（仅用于AI_V4MAPPED）
-* AI_CANONNAME 需要一个规范名（而不是别名）
-* AI_NUMERICHOST 以数字格式返回主机地址
-* AI_NUMERICSERV 以端口号返回服务
-* AI_PASSIVE 套接字地址用于监听绑定
-* AI_V4MAPPED 如果没有找到IPv6地址，则返回映射到IPv6格式的IPv4地址
+* 参数ai_flags所用的标志用来指定如何处理地址和名字
+ * AI_ADDRCONFIG 查询配置的地址类型（IPv4和IPv6）
+ * AI_ALL 查询IPv4和IPv6地址（仅用于AI_V4MAPPED）
+ * AI_CANONNAME 需要一个规范名（而不是别名）
+ * AI_NUMERICHOST 以数字格式返回主机地址
+ * AI_NUMERICSERV 以端口号返回服务
+ * AI_PASSIVE 套接字地址用于监听绑定
+ * AI_V4MAPPED 如果没有找到IPv6地址，则返回映射到IPv6格式的IPv4地址
 如果getaddrinfo失败，不能使用perror或strerror来生成错误消息。而是调用gai_strerror将返回的错误码转换成错误消息。
 ```c
 #include <netdb.h>
@@ -187,10 +187,42 @@ int getnameinfo(const struct sockaddr *restrict addr,
 ```
 套接字地址（addr）被转换成主机名或服务名。如果host非空，它指向一个长度为hostlen字节的缓冲区用于存储返回的主机名。同样，如果service非空，它只想一个长度为servlen字节的缓冲区用于存储返回的服务名。
 
-参数flags指定一些转换的控制方式，如下是系统支持的标志
-* NI_DGRAM 服务基于数据报而非基于流
-* NI_NAMEREQD 如果找不到主机名字，将其作为一个错误对待
-* NI_NOFQDN 对于本地主机，近返回完全限定域名的节点名字部分
-* NI_NUMERICHOST 以数字形式而非名字返回主机地址
-* NI_NUMERICSERV 以数字形式而非名字返回服务地址（即端口号）
+* 参数flags指定一些转换的控制方式，如下是系统支持的标志
+ * NI_DGRAM 服务基于数据报而非基于流
+ * NI_NAMEREQD 如果找不到主机名字，将其作为一个错误对待
+ * NI_NOFQDN 对于本地主机，近返回完全限定域名的节点名字部分
+ * NI_NUMERICHOST 以数字形式而非名字返回主机地址
+ * NI_NUMERICSERV 以数字形式而非名字返回服务地址（即端口号）
 
+## 16.3.4将套接字与地址绑定
+用bind函数将地址绑定到一个套接字
+```c
+#include <sys/socket.h>
+int bind(int sockfd, const struct sockaddr *addr, socklen_t len);
+//返回值：若成功则返回0，若出错则返回-1
+```
+* 对于所能使用的地址有一些限制：
+ * 在进程所运行的机器上，指定的地址必须有效，不能指定一个其他机器的地址。
+ * 地址必须和创建套接字时的地址族所支持的格式相匹配。
+ * 端口号必须小于1024，除非该进程具有相应的特权（即为超级用户）。
+ * 一般只有套接字端点能够与地址绑定，尽管有些协议允许多重绑定。
+可以调用函数getsockname来发现绑定到一个套接字的地址。
+```c
+#include <sys/socket.h>
+int getsockname(int sockfd, struct sockaddr *restrict addr, socklen_t *restrict alenp);
+//返回值：若成功则返回0，若出错则返回-1
+```
+* alenp为一个指向整数的指针，该整数指定缓冲区sockaddr的大小。返回时，该整数会被设置成返回地址的大小。如果该地址和提供的缓冲区长度不匹配，则将其截断而不报错。如果当前没有绑定到该套接字的地址，其结果没有定义。
+如果套接字已经和对方连接，调用getpeername来找到对方的地址。
+```c
+#include <sys/socket.h>
+int getpeername(int sockfd, struct sockaddr *restrict addr, socklen_t *restrict alenp);
+//返回值：若成功则返回0，若出错则返回-1
+```
+## 16.4 建立连接
+如果处理的是面向连接的网络服务（SOCK_STREAM或SOCK_SEQPACKET），在开始交换数据之前，需要在请求服务的进程套接字（客户端）和提供服务的进程套接字（服务端）之间建立一个连接。可以用connect建立一个连接。
+```c
+#include <sys/socket.h>
+int connect(int sockfd, const struct sockaddr *addr, socklen_t len);
+```
+在connect中所指定的地址是想与之通信的服务器地址。如果sockfd没有绑定到一个地址，connect会给调用者绑定一个默认地址。
