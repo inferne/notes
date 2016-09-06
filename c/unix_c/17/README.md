@@ -61,3 +61,16 @@ struct sockaddr_un {
 
 ### 17.3.2 唯一连接
 服务器进程可以使用标准的bind、listen和accept函数，为客户进程安排一个唯一UNIX域连接（unique UNIX domain connection）。
+
+## 17.4 传送文件描述符
+使用三个函数以发送和接收文件描述符。
+```c
+#include "apue.h"
+int send_fd(int fd, int status, const char *errmsg);
+int send_err(int fd, int status, const char *errmsg);
+//以上两个函数返回值：若成功则返回0，若出错则返回-1
+int recv_fd(int fd, ssize_t (*userfunc)(int, const void *, size_t));
+//返回值：若成功则返回文件描述符，若出错则返回负值
+```
+### 17.4.1 经由基于STREAMS的管道传送文件描述符
+文件描述符用两个ioctl命令经由STREAMS管道交换，这两个命令是：I_SENDFD和I_RECVFD。为了发送一个描述符，将ioctl的第三个参数设置为实际描述符。
