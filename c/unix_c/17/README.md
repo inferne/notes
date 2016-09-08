@@ -74,3 +74,44 @@ int recv_fd(int fd, ssize_t (*userfunc)(int, const void *, size_t));
 ```
 ### 17.4.1 经由基于STREAMS的管道传送文件描述符
 文件描述符用两个ioctl命令经由STREAMS管道交换，这两个命令是：I_SENDFD和I_RECVFD。为了发送一个描述符，将ioctl的第三个参数设置为实际描述符。
+
+### 17.4.2 经由UNIX域套接字传送文件描述符
+为了用UNIX域套接字交换文件描述符，调用sendmsg(2)和recvmsg(2)函数（16.5节）。这两个函数的参数都有一个指向msghdr结构的指针，该结构包含了所有有关收发内容的信息。该结构的定义大致如下：
+```c
+struct msghdr {
+    void          *msg_name;       /* optional address */
+    socklen_t      msg_namelen;    /* address size in bytes */
+    struct iovec  *msg_iov;        /* array of I/O buffers */
+    int            msg_iovlen;     /* number of elements in array */
+    void          *msg_control;    /* ancillary data */
+    socklen_t      msg_controllen; /* number of ancillary bytes */
+    int            msg_flags;      /* flags for received message */
+}
+```
+msg_control字段指向cmsghdr（控制信息首部）结构，msg_controllen字段包含控制信息的字节数。
+```c
+struct cmsghdr {
+    socklen_t  cmsg_len;    /* data byte count, including header */
+    int        cmsg_level;  /* originating protocol */
+    int        cmsg_type;   /* protocol-specific type */
+    /* followed by the actual control message data */
+}
+```
+为了发送文件描述符，将cmsg_len设置为cmsghdr结构的长度加一个整形（描述符）的长度，cmsg_level字段设置为SOL_SOCKET，cmsg_type字段设置为SCM_RIGHTS，用以指明我们在传送访问权。（SCM指的是套接字级控制消息，socket_level control message。）访问全仅能通过UNIX域套接字传送。描述符紧随cmsg_type字段之后存放，用CMSG_DATA宏获得该整形量的指针。
+
+三个宏用于访问控制数据，一个宏用于帮助计算cmsg_len所使用的值。
+```c
+#include <sys/socket.h>
+unsigned char * CMSG_DATA(struct cmsghdr *cp);
+//返回值：指向与cmsghdr结构相关联的数据的指针
+struct cmsghdr *CMSG_FIRSTHDR(struct msghdr *mp);
+//返回值：指向域msghdr结构相关联的第一个cmsghdr结构的指针，若无这样的结构则返回NULL
+struct cmsghdr *CMSG_NXTHDR(struct msghdr *mp, struct cmsghdr *cp);
+//返回值：指向与msghdr结构相关联的下一个cmsghdr结构的指针，该msghdr结构给出了当前cmsghdr结构，若当前cmsghdr结构已是最后一个则返回NULL
+unsigned int CMSG_LEN(unsigned int nbytes);
+//返回值：为nbytes大小的数据对象分配的长度
+```
+在传送文件描述符方面，UNIX域套接字和STREAMS管道之间的一个区别是，用STREAMS管道时我们得到发送进程的身份。某些UNIX域套接字版本提供类似的功能，但他们的接口不同。
+
+## 17.5 open服务器版本1
+使用文件描述符传送技术，我们开发了一个open服务器；一个由一个进程执行以打开一个或几个文件的程序。该服务器不是将文件内容送回调用进程，而是送回一个打开文件描述符。这使该服务器对任何类型的文件（例如一个设备或套接字）都能起作用。这意味着，用IPC交换了最小量的信息--从客户端进程到服务器进程传送文件名和打开模式，而从服务器进程到客户进程返回描述符。文件内容不需用IPC传送。
