@@ -354,6 +354,7 @@ int setsockopt(int sockfd, int level, int option, const void *val, socklen_t len
 //返回值：若成功则返回0，若出错则返回-1
 ```
 * level标识了选项应用的协议。
+* option选项
  * SO_ACCEPTCONN int 返回信息指示该套接字是否能监听（仅getsockopt）
  * SO_BROADCAST int 如果*val非零，广播数据包
  * SO_DEBUG int 如果*val非零，启用网络驱动调试功能
