@@ -26,7 +26,7 @@ class Daemon
         
         $this->_worker->onStart = function(Worker $fd){
             echo "child worker start";
-        }
+        };
         
         $this->_worker->onRecive = function(Worker $fd, $message){
             //子进程业务逻辑
