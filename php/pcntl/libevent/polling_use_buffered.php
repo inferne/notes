@@ -12,7 +12,7 @@ function print_line($fd, $arg)
     }
     
     // print the line
-    echo event_buffer_read($buf, 4096);
+    echo event_buffer_read($fd, 4096);
 }
 
 function error_func($buf, $what, $arg)
