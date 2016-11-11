@@ -82,25 +82,6 @@ class Scheduler {
         }
     }
     
-    public function killTask($tid) {
-        if (!isset($this->taskMap[$tid])) {
-            return false;
-        }
-    
-        unset($this->taskMap[$tid]);
-    
-        // This is a bit ugly and could be optimized so it does not have to walk the queue,
-        // but assuming that killing tasks is rather rare I won't bother with it now
-        foreach ($this->taskQueue as $i => $task) {
-            if ($task->getTaskId() === $tid) {
-                unset($this->taskQueue[$i]);
-                break;
-            }
-        }
-    
-        return true;
-    }
-    
     // resourceID => [socket, tasks]
     protected $waitingForRead = [];
     protected $waitingForWrite = [];

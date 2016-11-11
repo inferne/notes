@@ -69,7 +69,7 @@ class Scheduler {
         while (!$this->taskQueue->isEmpty()) {
             $task = $this->taskQueue->dequeue();
             $retval = $task->run();
-            
+            //首次$retval为第一次yield返回值
             if ($retval instanceof SystemCall) {
                 $retval($task, $this);
                 continue;
