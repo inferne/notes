@@ -16,7 +16,7 @@ struct _node
     int   color;
     int   d;
     int   f;
-    int   π;
+    node *p;
 };
 
 struct _list
@@ -40,7 +40,7 @@ dfs(graph *G, int c)
     while(i < c){
         u = G->V + i;
         u->color = WHITE;
-        u->π = NULL;
+        u->p = NULL;
         i++;
     }
     time = 0;
@@ -58,11 +58,14 @@ dfs_visit(graph *G, node *u)
     time = time + 1;
     u->d = time;
     u->color = GRAY;
-    while((v = (G->Adj + u->k)->next->x) != NULL){
+    list *ls = (G->Adj + u->k)->next;
+    while(ls != NULL){
+        v = ls->x;
         if(v->color == WHITE){
-            v->π = u;
+            v->p = u;
             dfs_visit(G, v);
         }
+        ls = ls->next;
     }
     u->color = BLACK;
     time = time + 1;
