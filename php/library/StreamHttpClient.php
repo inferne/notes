@@ -104,21 +104,22 @@ class StreamHttpClient
             }
         }
     }
-
+    
     public function parse($response){
         $response = explode("\r\n\r\n", $response);
-
+    
         $header = $response[0];
         $http_code = substr($header, 9, 3);
-
+    
         $package = explode("\r\n", $response[1]);
         $data = "";
         for($i = 0; $i < count($package); $i+=2){
-            if($package[$i] > 0){
+            if(hexdec($package[$i]) > 0){
                 $data .= $package[$i+1];
             }
         }
-
+    
         return $data;
     }
+    
 }
