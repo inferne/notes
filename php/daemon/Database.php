@@ -137,6 +137,29 @@ class Database
         $this->_last_query = $sql;
         return $this->_db->query($sql);
     }
+
+    /**
+     * 插入一组数据
+     * @param unknown $table
+     * @param unknown $arr_data
+     */
+    public function insertArray($table, $arr_data){
+        $values = '';
+        $keys = array_keys($arr_data[0]);
+        $fields = "(`".implode("`,`", $keys)."`)";
+        foreach ($arr_data as $val){
+            $values .= "('".implode("','", array_values($val))."'),";
+        }
+        $values = substr($values, 0, strlen($values) - 1);
+        $sql = "insert into $table $fields values $values";
+        $this->_last_query = $sql;
+        $stm = $this->_db->query($sql);
+        //var_dump($stm);
+        if($stm == false){
+            return "insert error!";
+        }
+        return $stm->rowCount();
+    }
     
     /**
      * 数组选择性重组
