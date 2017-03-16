@@ -4,7 +4,7 @@
 pcntl<br/>
 posix<br/>
 sysvmsg<br/>
-shmop<br/>
+
 进程间使用sysvmsg进行通讯<br/>
 ## Worker.php
 1. 支持的参数
