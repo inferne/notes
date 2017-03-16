@@ -139,7 +139,6 @@ class Worker
             if($this->onStart){
                 call_user_func($this->onStart, $this);
             }
-            $this->i = $i;
             $this->loop();
         }else{
             throw new Exception("fork error!");
@@ -207,67 +206,6 @@ class Worker
         return $result;
     }
 
-    private $shmop_key;
-    public $child_shmop_size = 8;//子进程使用的大小
-    private $shmop_size;//总共的大小
-    
-    /**
-     * 创建计数器
-     */
-    public function create_counter(){
-        $this->shmop_key = ftok(__FILE__, 't');
-        $this->shmop_size = $this->child_shmop_size * $this->worker_num;
-        
-        $shmid = @shmop_open($this->shmop_key, 'c', 0644, $this->shmop_size);
-        if(!$shmid){
-            echo json_encode(error_get_last())."\n";
-            exit();
-        }
-        
-        shmop_write($shmid, 0, 0);
-        shmop_close($shmid);
-    }
-    
-    /**
-     * 计数器加一
-     */
-    public function counter($start){
-        $shmid = shmop_open($this->shmop_key, "c", 0644, $this->shmop_size);
-        //echo $shmid."\n";
-        $count = shmop_read($shmid, $start, $this->child_shmop_size);
-        $count += 1;
-        shmop_write($shmid, $count, $start);
-        shmop_close($shmid);
-    }
-    
-    /**
-     * 等待计数完成
-     * @param unknown $count
-     * @return boolean
-     */
-    public function wait_count_over($count){
-        while (1){
-            $shmid = shmop_open($this->shmop_key, "c", 0644, $this->shmop_size);
-            $data = shmop_read($shmid, 0, $this->shmop_size)."\n";
-            $arr_count = str_split($data, $this->child_shmop_size);
-            if(array_sum($arr_count) == $count){
-                shmop_write($shmid, 0, 0);
-                break;
-            }
-            usleep(100000);//100ms
-        }
-        return true;
-    }
-    
-    /**
-     * 移除计数器
-     */
-    public function remove_counter(){
-        $shmid = shmop_open($this->shmop_key, "c", 0644, $this->shmop_size);
-        shmop_delete($shmid);
-        shmop_close($shmid);
-    }
-    
     /**
      * 停止
      */
