@@ -4,7 +4,7 @@ include 'Worker.php';
 
 $worker = new Worker();
 
-$worker->onRecive = function(Worker $fd, $message){
+$worker->onReceive = function(Worker $fd, $message){
     //处理业务逻辑
     $fd->log("recive $message");
     //更新数据库
