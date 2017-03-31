@@ -13,7 +13,8 @@ class StreamHttpClient
     private $timeout       = 1;
     private $length = 8196;
     private $url;
-    private $user_agent = "driver_settlement";
+    private $user_agent = "your agent";
+    public  $http_code;
 
     public function __construct($url){
         $this->url = parse_url($url);
@@ -67,7 +68,7 @@ class StreamHttpClient
         $response = '';
         while (!feof($fp)){
             $response .= fread($fp, $this->length);
-            if(substr($response, -5) == "0\r\n\r\n"){
+            if(substr($response, -4) == "\r\n\r\n"){
                 break;
             }
         }
@@ -109,7 +110,7 @@ class StreamHttpClient
         $response = explode("\r\n\r\n", $response);
     
         $header = $response[0];
-        $http_code = substr($header, 9, 3);
+        $this->http_code = substr($header, 9, 3);
     
         $package = explode("\r\n", $response[1]);
         $data = "";
