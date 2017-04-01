@@ -10,11 +10,12 @@
 class StreamHttpClient
 {
     private $port       = 80;
-    private $timeout       = 1;
-    private $length = 8196;
+    private $timeout    = 1;
+    private $length     = 8196;
     private $url;
     private $user_agent = "your agent";
     public  $http_code;
+    public  $header;//header infomation
 
     public function __construct($url){
         $this->url = parse_url($url);
@@ -48,11 +49,23 @@ class StreamHttpClient
     }
 
     public function build_header(){
-        $context  = "Accept: */*\r\n";
+        $context  = "";
+        if($this->header){
+            $context = implode("\r\n", $this->header)."\r\n";
+        }
+        if(!isset($this->header["Accept"])) {
+            $context .= "Accept: */*\r\n";
+        }
         $context .= "Host: ".$this->url['host']."\r\n";
-        $context .= "User-Agent: ".$this->user_agent."\r\n";
-        $context .= "Content-Type: application/x-www-form-urlencoded\r\n";
-        $context .= "Connection: Keep-Alive\r\n";
+        if(!isset($this->header["User-Agent"])) {
+            $context .= "User-Agent: ".$this->user_agent."\r\n";
+        }
+        if(!isset($this->header["Content-Type"])) {
+            $context .= "Content-Type: application/x-www-form-urlencoded\r\n";
+        }
+        if(!isset($this->header["Connection"])) {
+            $context .= "Connection: Keep-Alive\r\n";
+        }
         return $context;
     }
 
@@ -65,18 +78,30 @@ class StreamHttpClient
         //send context to server
         fwrite($fp, $context);
         //read server response
-        $response = '';
+        $response = fread($fp, $this->length);
+        //Transfer-Encoding: chunked
+        if(strpos($response, "Transfer-Encoding: chunked") > 0){
+            $chunked = true;
+        }else{
+            $chunked = false;
+        }
         while (!feof($fp)){
-            $response .= fread($fp, $this->length);
-            if(substr($response, -4) == "\r\n\r\n"){
-                break;
+            if($chunked){
+                if(substr($response, -5) == "0\r\n\r\n"){
+                    break;
+                }
+            }else{//Content-Length
+                if (strlen($response) % $this->length){
+                    break;
+                }
             }
+            $response .= fread($fp, $this->length);
         }
         //when service close Connection
         if(strpos("Connection: close", $response)){
             fclose($fp);
         }
-
+        
         return $response;
     }
 
