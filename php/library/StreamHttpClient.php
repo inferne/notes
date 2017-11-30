@@ -24,11 +24,10 @@ class StreamHttpClient
     public function get($params = array()){
         $query = (isset($this->url['query']) ? $this->url['query']."&" : "?") . http_build_query($params);
         $context  = "GET ".$this->url['path'].$query." HTTP/1.1\r\n";
-        $context .= $this->build_header();
+        $context .= $this->http_build_header();
         $context .= "\r\n";
 
-        $response = $this->request($context);
-        $result = $this->parse($response);
+        $result = $this->request($context);
         return $result;
     }
 
@@ -36,19 +35,18 @@ class StreamHttpClient
         $data = http_build_query($params);
         $query = $this->url['query'];
         $context  = "POST ".$this->url['path'].$query." HTTP/1.1\r\n";
-        $context .= $this->build_header();
+        $context .= $this->http_build_header();
         $context .= "Content-Length: ".strlen($data)."\r\n\r\n";
 
         if(strlen($data) > 0){
             $context .= $data."\r\n\r\n";
         }
         //echo $context;
-        $response = $this->request($context);
-        $result = $this->parse($response);
+        $result = $this->request($context);
         return $result;
     }
 
-    public function build_header(){
+    public function http_build_header(){
         $context  = "";
         if($this->header){
             $context = implode("\r\n", $this->header)."\r\n";
@@ -102,7 +100,7 @@ class StreamHttpClient
             fclose($fp);
         }
         
-        return $response;
+        return $this->parse($response);
     }
 
     public function print_string($string){
