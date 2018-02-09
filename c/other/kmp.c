@@ -53,7 +53,7 @@ int main()
 {
     char *str = "gjhdsgf\r\nhskjdhfkds\r\ndsfdsfg";
     char *p = "\r\n";
-    explode(str, p);
+    kmp(str, p);
     return 0;
 }
 
