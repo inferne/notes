@@ -86,7 +86,7 @@ class Database
                     if(self::is_assoc($value)){
                         foreach ($value as $k => $v){
                             if(in_array($k, array(">","<",">=","<=","<>","!=","like"))){
-                                $where .= ($where ? ' and ' : '')."`$key` $k {$v}";
+                                $where .= ($where ? ' and ' : '')."`$key` $k '{$v}'";
                             }
                         }
                     }else
