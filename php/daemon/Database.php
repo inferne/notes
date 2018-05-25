@@ -177,7 +177,11 @@ class Database
             if($fields == "*"){
                 $result[$value[$index]] = $value;
             }elseif (count($arr_field) == 1){
-                $result[$value[$index]] = $value[$fields];
+                if($index){
+                    $result[$value[$index]] = $value[$fields];
+                }else{
+                    $result[] = $value[$fields];
+                }
             }else{
                 foreach ($arr_field as $field){
                     $result[$value[$index]][$field] = $value[$field];
