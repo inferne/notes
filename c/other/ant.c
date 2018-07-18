@@ -62,7 +62,7 @@ int graph_matrix[
         [0,0,0,0,0,0,0,0,2,3]
         [0,0,0,0,0,0,0,0,0,2]
         [0,0,0,0,0,0,0,0,0,0]
-	];
+    ];
 
 //信息素矩阵
 int pheromone_matrix[10][10] = {0};
@@ -77,77 +77,77 @@ int ant = 100;
 int path_matrix[100][10];
 
 void search() {
-	int k = 1;
-	int h = 1;
-	for (n = 0; n < ant; n++) {
-		/* 
-		按信息素计算概率  
-		公式：Pa = (a + k)^h/((a + k)^h + (b + k)^h + ...)
-		取k = 1, h = 1
-		*/
-		for (i = 0; i < 10; i++) {
-			m = 0;
-			//累加可选路径的信息素
-			for (j = 0; j < 10; j++) {
-				if (graph_matrix[i][j] > 0) {
-					pheromoneSum += pheromone_matrix[i][j] + k;
-				}
-			}
-			//
-			f = 0;//表示蚂蚁是否已经选择了一条路径
-			P = 0;//计算的概率
-			do {
-				for (j = i; j < 10; j++) {
-					if (graph_matrix[i][j] > 0) {
-						P = (pheromone_matrix[i][j] + k) / pheromoneSum;
-						if (P > random(0,99)/100) {
-							path_matrix[n][i] = j;
-							f = 1;
-							break;
-						}
-					}
-				}
-			} while ( f == 1 );
-		}
-	}
+    int k = 1;
+    int h = 1;
+    for (n = 0; n < ant; n++) {
+        /* 
+        按信息素计算概率  
+        公式：Pa = (a + k)^h/((a + k)^h + (b + k)^h + ...)
+        取k = 1, h = 1
+        */
+        for (i = 0; i < 10; i++) {
+            m = 0;
+            //累加可选路径的信息素
+            for (j = 0; j < 10; j++) {
+                if (graph_matrix[i][j] > 0) {
+                    pheromoneSum += pheromone_matrix[i][j] + k;
+                }
+            }
+            //
+            f = 0;//表示蚂蚁是否已经选择了一条路径
+            P = 0;//计算的概率
+            do {
+                for (j = i; j < 10; j++) {
+                    if (graph_matrix[i][j] > 0) {
+                        P = (pheromone_matrix[i][j] + k) / pheromoneSum;
+                        if (P > random(0,99)/100) {
+                            path_matrix[n][i] = j;
+                            f = 1;
+                            break;
+                        }
+                    }
+                }
+            } while ( f == 1 );
+        }
+    }
 }
 
 //更新信息素矩阵
 void update_pheromone() {
-	for (n = 0; n < ant; n++) {
-		for (i = 0; i < 10; i++) {
-			for (j = i; j < 10; j++) {
-				if (path_matrix[n][i] == j) {
-					pheromone_matrix[i][j] + 1/graph_matrix[i][j];//路径越大，衰减越快
-				}
-			}
-		}
-	}
+    for (n = 0; n < ant; n++) {
+        for (i = 0; i < 10; i++) {
+            for (j = i; j < 10; j++) {
+                if (path_matrix[n][i] == j) {
+                    pheromone_matrix[i][j] + 1/graph_matrix[i][j];//路径越大，衰减越快
+                }
+            }
+        }
+    }
 }
 
 //输出信息素浓度最大的路径
 void printf_max_pheromone_path() {
-	for (i = 0; i < 10; i++) {
-		max = 0;
-		node = 0;
-		for (j = i; j < 10; j++) {
-			if (pheromone_matrix[i][j] > max) {
-				 max = pheromone_matrix[i][j];
-				 node = j;
-			}
-		}
-		printf("node=%d max=%d\n", node, max);
-	}
+    for (i = 0; i < 10; i++) {
+        max = 0;
+        node = 0;
+        for (j = i; j < 10; j++) {
+            if (pheromone_matrix[i][j] > max) {
+                 max = pheromone_matrix[i][j];
+                 node = j;
+            }
+        }
+        printf("node=%d max=%d\n", node, max);
+    }
 }
 
 int main () {
-	//多次迭代
-	for (i = 0; i < iteratorNum; i++) {
-		//搜索蚂蚁爬行路径矩阵
-		search();
-		//更新信息素矩阵
-		update_pheromone();
-	}
-	//输出信息素浓度最大的路径
-	printf_max_pheromone_path();
+    //多次迭代
+    for (i = 0; i < iteratorNum; i++) {
+        //搜索蚂蚁爬行路径矩阵
+        search();
+        //更新信息素矩阵
+        update_pheromone();
+    }
+    //输出信息素浓度最大的路径
+    printf_max_pheromone_path();
 }
