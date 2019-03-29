@@ -32,7 +32,7 @@ class TimerWheel
         
         $this->tvrMask = $this->tvrSize - 1;
         $this->tvnMask = $this->tvnSize - 1;
-        
+        /* 初始化5层时间轮 */
         $this->timerManager = range(0, 4);
         for ($i = 0; $i < 5; $i++) {
             $this->timerManager[$i] = [];
@@ -164,7 +164,7 @@ class TimerWheel
             $this->arrTask[$id]['uExpires'] = $this->uExpires($frequency);
         } else {
             $task = ['fre' => $frequency, 'id' => $id, 'uExpires' => $this->uExpires($frequency)];
-            $this->arrTask[$id] = $task;
+            $this->arrTask[$id] = $task; // 保存任务到ht
         }
         $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id]));
         
@@ -188,8 +188,8 @@ class TimerWheel
         
         if ($uDueTime < $this->tvrSize) {
             $i = $uExpires & $this->tvrMask;
-            $this->timerManager[0][$i][$id] = &$this->arrTask[$id];
-            $this->arrTask[$id][1] = 0; //轮的层级
+            $this->timerManager[0][$i][$id] = &$this->arrTask[$id]; //把任务引用到$i层的$id槽上
+            $this->arrTask[$id][1] = 0; //记录轮的层级
         } elseif ($uDueTime < 1 << ($this->tvrBits + $this->tvnBits)) {
             $i = ($uExpires >> $this->tvrBits) & $this->tvnMask;
             $this->timerManager[1][$i][$id] = &$this->arrTask[$id];
@@ -207,7 +207,7 @@ class TimerWheel
             $this->timerManager[4][$i][$id] = &$this->arrTask[$id];
             $this->arrTask[$id][1] = 4;
         }
-        $this->arrTask[$id][2] = $i; //轮中的槽
+        $this->arrTask[$id][2] = $i; //记录轮中的槽
         $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id]));
         //echo __FUNCTION__." ".json_encode($this->arrTask[$id])."\n";
     }
@@ -244,12 +244,12 @@ class TimerWheel
             $i = $this->uJiffies >> ($this->tvrBits + $this->tvnBits * ($lv) - 1);
         }
         
-        if ($i > 0 && 0 == $i % $this->tvnMask) { //判断时间进位
+        if ($i > 0 && 0 == $i % $this->tvnMask) { //判断时间进位，递归更新上一层
             $this->cascadeTask(++$lv);
         }
         
         $i %= $this->tvnMask;
-        
+        /* 把层中到期槽中任务下降到精度更精确的下一级 */
         foreach ($this->timerManager[$lv][$i] as $id => $task) {
             unset($this->timerManager[$lv][$i][$id]);
             $this->addTask($task);
