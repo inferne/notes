@@ -32,7 +32,7 @@ class TimerWheel
         
         $this->tvrMask = $this->tvrSize - 1;
         $this->tvnMask = $this->tvnSize - 1;
-        /* 初始化5层时间轮 */
+        
         $this->timerManager = range(0, 4);
         for ($i = 0; $i < 5; $i++) {
             $this->timerManager[$i] = [];
@@ -91,7 +91,7 @@ class TimerWheel
                             //有进位则把前面的指针都置为零
                             foreach ($tk as $k => &$v) {
                                 if (isset($fields[$k]['f'])) {
-                                    $fields[$k][0] = 0;
+                                    $fields[$k][0] = ($d + $fields[$k]['f']) % $this->ary[$k];
                                 } else {
                                     $v = 0;
                                 }
@@ -109,7 +109,7 @@ class TimerWheel
                         //有进位则把前面的指针都置为零
                         foreach ($tk as $k => &$v) {
                             if (isset($fields[$k]['f'])) {
-                                $fields[$k][0] = 0;
+                                $fields[$k][0] = ($d + $fields[$k]['f']) % $this->ary[$k];
                             } else {
                                 $v = 0;
                             }
@@ -127,7 +127,7 @@ class TimerWheel
                     //有进位则把前面的指针都置为零
                     foreach ($tk as $k => &$v) {
                         if (isset($fields[$k]['f'])) {
-                            $fields[$k][0] = 0;
+                            $fields[$k][0] = ($d + $fields[$k]['f']) % $this->ary[$k];
                         } else {
                             $v = 0;
                         }
@@ -146,7 +146,7 @@ class TimerWheel
         //按照指针数组合成最近执行时间
         $datetime = $year."-".$fields[4][$tk[4]]."-".$fields[3][$tk[3]]." ".$fields[2][$tk[2]].":".$fields[1][$tk[1]].":".$fields[0][$tk[0]];
         
-        $this->printLog(__FUNCTION__." ".$frequency." => ".$datetime);
+        $this->printLog(__FUNCTION__." ".date("Y-m-d H:i:s")." ".$frequency." => ".$datetime);
         return (int)((strtotime($datetime) - (time() - $this->uJiffies))); //定时器到期时间
     }
     
@@ -164,7 +164,7 @@ class TimerWheel
             $this->arrTask[$id]['uExpires'] = $this->uExpires($frequency);
         } else {
             $task = ['fre' => $frequency, 'id' => $id, 'uExpires' => $this->uExpires($frequency)];
-            $this->arrTask[$id] = $task; // 保存任务到ht
+            $this->arrTask[$id] = $task;
         }
         $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id]));
         
@@ -188,8 +188,8 @@ class TimerWheel
         
         if ($uDueTime < $this->tvrSize) {
             $i = $uExpires & $this->tvrMask;
-            $this->timerManager[0][$i][$id] = &$this->arrTask[$id]; //把任务引用到$i层的$id槽上
-            $this->arrTask[$id][1] = 0; //记录轮的层级
+            $this->timerManager[0][$i][$id] = &$this->arrTask[$id];
+            $this->arrTask[$id][1] = 0; //轮的层级
         } elseif ($uDueTime < 1 << ($this->tvrBits + $this->tvnBits)) {
             $i = ($uExpires >> $this->tvrBits) & $this->tvnMask;
             $this->timerManager[1][$i][$id] = &$this->arrTask[$id];
@@ -207,8 +207,8 @@ class TimerWheel
             $this->timerManager[4][$i][$id] = &$this->arrTask[$id];
             $this->arrTask[$id][1] = 4;
         }
-        $this->arrTask[$id][2] = $i; //记录轮中的槽
-        $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id]));
+        $this->arrTask[$id][2] = $i; //轮中的槽
+        $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id])." ".$uDueTime);
         //echo __FUNCTION__." ".json_encode($this->arrTask[$id])."\n";
     }
     
@@ -244,12 +244,12 @@ class TimerWheel
             $i = $this->uJiffies >> ($this->tvrBits + $this->tvnBits * ($lv) - 1);
         }
         
-        if ($i > 0 && 0 == $i % $this->tvnMask) { //判断时间进位，递归更新上一层
+        if ($i > 0 && 0 == $i % $this->tvnSize) { //判断时间进位
             $this->cascadeTask(++$lv);
         }
         
-        $i %= $this->tvnMask;
-        /* 把层中到期槽中任务下降到精度更精确的下一级 */
+        $i %=  $this->tvnSize;
+        $this->printLog("lv=".$lv." i=".$i);
         foreach ($this->timerManager[$lv][$i] as $id => $task) {
             unset($this->timerManager[$lv][$i][$id]);
             $this->addTask($task);
@@ -264,7 +264,8 @@ class TimerWheel
         if ($this->lastTime != $now) {
             //$this->printLog("++++++++++++++++++++++++++++begin getTask++++++++++++++++++++++++++++");
             while ($this->lastTime != $now) { //避免程序执行产生的时间误差导致跳过>1秒
-                if ($this->uJiffies != 0 && ($this->uJiffies % $this->tvrMask) == 0) {
+                if ($this->uJiffies != 0 && ($this->uJiffies % $this->tvrSize) == 0) {
+                    $this->printLog("jiff=".$this->uJiffies);
                     $this->cascadeTask(1);
                 }
                 
@@ -272,7 +273,7 @@ class TimerWheel
                 $this->uJiffies++; //瞬间时间++
                 $this->lastTime++;
                 foreach ($taskList as $task) {
-                    $this->printLog(__FUNCTION__." ".json_encode($task));
+                    $this->printLog(__FUNCTION__." ".json_encode($task)." ".($this->uJiffies-1));
                     $this->updateTask($task['id']);
                 }
             }
@@ -302,23 +303,24 @@ class TimerWheel
 
 $timer = new TimerWheel();
 
-$timer->createTask("* 15 12-20 * * *", 333);
-$timer->createTask("15 10-15 * * * *", 333);
-$timer->createTask("*/10 * * * * *", 222);
-$timer->createTask("15 */2 * * * *", 333);
-$timer->createTask("25 14 */3 09 * *", 555);
-$timer->createTask("25 10 */3 * * *", 555);
-$timer->createTask("* * * * * *", 111);
-$timer->createTask("10 * * * * *", 222);
-$timer->createTask("15 10 * * * *", 333);
-$timer->createTask("* 10,20,30 * * * *", 334);
-$timer->createTask("20 12 08 * * *", 444);
-$timer->createTask("* * 08 * * *", 445);
-$timer->createTask("25 14 18 09 * *", 555);
-$timer->createTask("* * * 09 * *", 556);
-$timer->createTask("30 12 * * 1 *", 666);
-$timer->createTask("* 12 * * 1 *", 666);
+// $timer->createTask("* 15 12-20 * * *", 333);
+// $timer->createTask("15 10-15 * * * *", 333);
+// $timer->createTask("*/10 * * * * *", 222);
+// $timer->createTask("15 */2 * * * *", 333);
+$timer->createTask("27 */5 * * * *", 444);
+// $timer->createTask("25 14 */3 09 * *", 555);
+// $timer->createTask("25 10 */3 * * *", 555);
+// $timer->createTask("* * * * * *", 111);
+// $timer->createTask("10 * * * * *", 222);
+// $timer->createTask("15 10 * * * *", 333);
+// $timer->createTask("* 10,20,30 * * * *", 334);
+// $timer->createTask("20 12 08 * * *", 444);
+// $timer->createTask("* * 08 * * *", 445);
+// $timer->createTask("25 14 18 09 * *", 555);
+// $timer->createTask("* * * 09 * *", 556);
+// $timer->createTask("30 12 * * 1 *", 666);
+// $timer->createTask("* 12 * * 1 *", 666);
 
-for ($i = 0; $i < 100; $i++) {
+for ($i = 0; $i < 2000; $i++) {
     $timer->getTask();
 }
