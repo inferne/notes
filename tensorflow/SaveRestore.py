@@ -111,3 +111,4 @@ new_model.summary()
 
 loss, acc = new_model.evaluate(test_images, test_labels)
 print("Restored model, accuracy: {:5.2f}%".format(100*acc))
+
