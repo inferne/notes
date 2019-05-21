@@ -125,5 +125,3 @@ plot_value_array(0, predictions_single, test_labels)
 _ = plt.xticks(range(10), class_names, rotation=45)
 
 print(np.argmax(predictions_single[0]))
-
-
