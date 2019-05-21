@@ -162,5 +162,3 @@ error = test_predictions - test_labels
 plt.hist(error, bins = 25)
 plt.xlabel("Prediction Error [MPG]")
 _ = plt.ylabel("Count")
-
-
