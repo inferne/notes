@@ -366,9 +366,9 @@ static PHP_FUNCTION(event_base_new)
 		efree(base);
 		RETURN_FALSE;
 	}
-
+	event_init(); // init global base
 	base->events = 0;
-
+	
 #if PHP_MAJOR_VERSION >= 5 && PHP_MINOR_VERSION >= 4
 	base->rsrc = Z_RES_P(zend_list_insert(base, le_event_base TSRMLS_CC));
 #else
@@ -965,7 +965,7 @@ static PHP_FUNCTION(event_buffer_new)
 	//efree(func_name);
 
 	bevent = emalloc(sizeof(php_bufferevent_t));
-	bevent->bevent = bufferevent_new(fd, _php_bufferevent_readcb, _php_bufferevent_writecb, _php_bufferevent_errorcb, bevent);
+	bevent->bevent = bufferevent_new(fd, _php_bufferevent_readcb, _php_bufferevent_writecb, _php_bufferevent_errorcb, (void *)bevent);
 
 	bevent->base = NULL;
 
