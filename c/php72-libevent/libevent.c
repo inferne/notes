@@ -142,7 +142,7 @@ static inline void _php_event_callback_free(php_event_callback_t *callback) /* {
 
 	zval_ptr_dtor(callback->func);
 	if (callback->arg) {
-		zval_ptr_dtor(callback->arg);
+		zval_ptr_dtor(callback->arg);efree(callback->arg);
 	}
 	efree(callback);
 }
@@ -197,16 +197,16 @@ static void _php_bufferevent_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 		--bevent->base->events;
 	}
 	if (bevent->readcb) {
-		zval_ptr_dtor(bevent->readcb);
+		zval_ptr_dtor(bevent->readcb);efree(bevent->readcb);
 	}
 	if (bevent->writecb) {
-		zval_ptr_dtor(bevent->writecb);
+		zval_ptr_dtor(bevent->writecb);efree(bevent->writecb);
 	}
 	if (bevent->errorcb) {
-		zval_ptr_dtor(bevent->errorcb);
+		zval_ptr_dtor(bevent->errorcb);efree(bevent->errorcb);
 	}
 	if (bevent->arg) {
-		zval_ptr_dtor(bevent->arg);
+		zval_ptr_dtor(bevent->arg);efree(bevent->arg);
 	}
 
 	bufferevent_free(bevent->bevent);
@@ -968,23 +968,23 @@ static PHP_FUNCTION(event_buffer_new)
 	bevent->bevent = bufferevent_new(fd, _php_bufferevent_readcb, _php_bufferevent_writecb, _php_bufferevent_errorcb, (void *)bevent);
 
 	bevent->base = NULL;
-
+	bevent->readcb = emalloc(sizeof(zval));bevent->errorcb = emalloc(sizeof(zval));
 	if (zreadcb) {
 		zval_add_ref(zreadcb);
 	}
-	bevent->readcb = zreadcb;
+	ZVAL_COPY(bevent->readcb, zreadcb);
 	
 	if (zwritecb) {
-		zval_add_ref(zwritecb);
+		zval_add_ref(zwritecb);bevent->writecb = emalloc(sizeof(zval));
+		ZVAL_COPY(bevent->writecb, zwritecb);
 	}
-	bevent->writecb = zwritecb;
 		
 	zval_add_ref(zerrorcb);
-	bevent->errorcb = zerrorcb;
-
+	ZVAL_COPY(bevent->errorcb, zerrorcb);
+	
 	if (zarg) {
-		zval_add_ref(zarg);
-		bevent->arg = zarg;
+		zval_add_ref(zarg);bevent->arg = emalloc(sizeof(zval));
+		ZVAL_COPY(bevent->arg, zarg);
 	} else {
 		ALLOC_INIT_ZVAL(bevent->arg);
 	}
@@ -1122,7 +1122,7 @@ static PHP_FUNCTION(event_buffer_read)
 {
 	zval *zbevent;
 	php_bufferevent_t *bevent;
-	char *data;
+	zend_string *data;
 	long data_size;
 	int ret;
 
@@ -1138,16 +1138,15 @@ static PHP_FUNCTION(event_buffer_read)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "data_size cannot be less than zero");
 		RETURN_FALSE;
 	}
+	data = zend_string_alloc((int)data_size * sizeof(char), 0);//	data = safe_emalloc((int)data_size, sizeof(char), 1);
 
-	data = safe_emalloc((int)data_size, sizeof(char), 1);
-
-	ret = bufferevent_read(bevent->bevent, data, data_size);
+	ret = bufferevent_read(bevent->bevent, ZSTR_VAL(data), data_size);
 	if (ret > 0) {
 		if (ret > data_size) { /* paranoia */
 			ret = data_size;
 		}
-		data[ret] = '\0';
-		RETURN_STRINGL(data, ret);
+		ZSTR_VAL(data)[ret] = '\0';ZSTR_LEN(data) = ret;
+		RETURN_STR(data);//RETURN_STRINGL(data, ret);
 	}
 	efree(data);
 	RETURN_EMPTY_STRING();
