@@ -968,7 +968,7 @@ static PHP_FUNCTION(event_buffer_new)
 	bevent->bevent = bufferevent_new(fd, _php_bufferevent_readcb, _php_bufferevent_writecb, _php_bufferevent_errorcb, (void *)bevent);
 
 	bevent->base = NULL;
-	bevent->readcb = emalloc(sizeof(zval));bevent->errorcb = emalloc(sizeof(zval));
+	bevent->readcb = emalloc(sizeof(zval));
 	if (zreadcb) {
 		zval_add_ref(zreadcb);
 	}
@@ -978,7 +978,7 @@ static PHP_FUNCTION(event_buffer_new)
 		zval_add_ref(zwritecb);bevent->writecb = emalloc(sizeof(zval));
 		ZVAL_COPY(bevent->writecb, zwritecb);
 	}
-		
+	bevent->errorcb = emalloc(sizeof(zval));
 	zval_add_ref(zerrorcb);
 	ZVAL_COPY(bevent->errorcb, zerrorcb);
 	
