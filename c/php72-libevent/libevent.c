@@ -178,7 +178,7 @@ static void _php_event_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 		zend_list_delete(event->stream);
 	}
 	event_del(event->event);
-
+	
 	_php_event_callback_free(event->callback);
 	efree(event->event);
 	efree(event);
@@ -216,7 +216,7 @@ static void _php_bufferevent_dtor(zend_resource *rsrc TSRMLS_DC) /* {{{ */
 		//printf("_php_bufferevent_dtor: bevent->arg->refcount=%d, bevent->arg->handle=%d\n", Z_REFCOUNT_P(bevent->arg), Z_RES_HANDLE_P(bevent->arg));
 		efree(bevent->arg);
 	}
-
+	
 	bufferevent_free(bevent->bevent);
 	efree(bevent);
 	
@@ -237,7 +237,7 @@ static void _php_event_callback(int fd, short events, void *arg) /* {{{ */
 	if (!event || !event->callback || !event->base) {
 		return;
 	}
-
+	
 	callback = event->callback;
 	//printf("_php_event_callback: fd=%d, event=%p, event->stream=%p, callback->func->refcount=%d\n", fd, event, event->stream, (*callback->func->value.str).gc.refcount);
 	//MAKE_STD_ZVAL(args[0]);
@@ -363,6 +363,7 @@ static void _php_bufferevent_errorcb(struct bufferevent *be, short what, void *a
 static PHP_FUNCTION(event_base_new)
 {
 	php_event_base_t *base;
+	zval *zr;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") != SUCCESS) {
 		return;
@@ -378,10 +379,12 @@ static PHP_FUNCTION(event_base_new)
 	base->events = 0;
 	
 #if PHP_MAJOR_VERSION >= 5 && PHP_MINOR_VERSION >= 4
-	base->rsrc = Z_RES_P(zend_list_insert(base, le_event_base TSRMLS_CC));
+	zr = zend_list_insert(base, le_event_base TSRMLS_CC);
 #else
-	base->rsrc = Z_RES_P(zend_list_insert(base, le_event_base));
+	zr = zend_list_insert(base, le_event_base);
 #endif
+	zval_add_ref(zr);
+	base->rsrc = Z_RES_P(zr);
 	RETURN_RES(base->rsrc);
 }
 /* }}} */
@@ -575,6 +578,7 @@ static PHP_FUNCTION(event_base_priority_init)
 static PHP_FUNCTION(event_new)
 {
 	php_event_t *event;
+	zval *zr;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") != SUCCESS) {
 		return;
@@ -590,10 +594,12 @@ static PHP_FUNCTION(event_new)
 	TSRMLS_SET_CTX(event->thread_ctx);
 
 #if PHP_MAJOR_VERSION >= 5 && PHP_MINOR_VERSION >= 4
-	event->rsrc = Z_RES_P(zend_list_insert(event, le_event TSRMLS_CC));
+	zr = zend_list_insert(event, le_event TSRMLS_CC);
 #else
-	event->rsrc = Z_RES_P(zend_list_insert(event, le_event));
+	zr = zend_list_insert(event, le_event);
 #endif
+	zval_add_ref(zr);
+	event->rsrc = Z_RES_P(zr);
 	RETURN_RES(event->rsrc);
 }
 /* }}} */
@@ -905,7 +911,7 @@ static PHP_FUNCTION(event_buffer_new)
 {
 	php_bufferevent_t *bevent;
 	php_stream *stream;
-	zval *zfd, *zreadcb, *zwritecb, *zerrorcb, *zarg = NULL;
+	zval *zfd, *zreadcb, *zwritecb, *zerrorcb, *zarg = NULL, *zr;
 	php_socket_t fd;
 	zend_string *func_name;
 #ifdef LIBEVENT_SOCKETS_SUPPORT
@@ -996,7 +1002,7 @@ static PHP_FUNCTION(event_buffer_new)
 	if (zarg) {
 		zval_add_ref(zarg);
 		ZVAL_COPY(bevent->arg, zarg);
-		//printf("event_buffer_new: bevent->arg->refcount=%d, bevent->arg->handle=%d\n", Z_REFCOUNT_P(bevent->arg), Z_RES_HANDLE_P(bevent->arg));
+	    //printf("event_buffer_new: bevent->arg->refcount=%d, bevent->arg->handle=%d\n", Z_REFCOUNT_P(bevent->arg), Z_RES_HANDLE_P(bevent->arg));
 	} else {
 		//ALLOC_INIT_ZVAL(bevent->arg);
 	}
@@ -1005,10 +1011,12 @@ static PHP_FUNCTION(event_buffer_new)
 	TSRMLS_SET_CTX(bevent->thread_ctx);
 	//printf("event_buffer_new: bevent=%p, le_bufferevent=%d\n", bevent, le_bufferevent);
 #if PHP_MAJOR_VERSION >= 5 && PHP_MINOR_VERSION >= 4
-	bevent->rsrc = Z_RES_P(zend_list_insert(bevent, le_bufferevent TSRMLS_CC));
+	zr = zend_list_insert(bevent, le_bufferevent TSRMLS_CC);
 #else
-	bevent->rsrc = Z_RES_P(zend_list_insert(bevent, le_bufferevent));
+	zr = zend_list_insert(bevent, le_bufferevent);
 #endif
+	zval_add_ref(zr);
+	bevent->rsrc = Z_RES_P(zr);
 	//printf("event_buffer_new: bevent->rsrc=%p, bevent->rsrc->handle=%d, bevent->base=%p\n", bevent->rsrc, bevent->rsrc->handle, bevent->base);
 	RETURN_RES(bevent->rsrc);
 }
@@ -1416,7 +1424,7 @@ static PHP_FUNCTION(event_last_error)
 	// 	str_len = strlen(str);
 	// 	data = zend_string_init(str, str_len, 0);
 	// }
-
+	printf("event_last_error: %s\n", evutil_socket_error_to_string(EVUTIL_SOCKET_ERROR()));
 	// RETURN_STR(data);
 }
 /* }}} */
