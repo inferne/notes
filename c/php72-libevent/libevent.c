@@ -1000,7 +1000,7 @@ static PHP_FUNCTION(event_buffer_new)
 	ZVAL_COPY(bevent->errorcb, zerrorcb);
 	bevent->arg = emalloc(sizeof(zval));
 	if (zarg) {
-		zval_add_ref(zarg);
+		//zval_add_ref(zarg);
 		ZVAL_COPY(bevent->arg, zarg);
 	    //printf("event_buffer_new: bevent->arg->refcount=%d, bevent->arg->handle=%d\n", Z_REFCOUNT_P(bevent->arg), Z_RES_HANDLE_P(bevent->arg));
 	} else {
@@ -1356,48 +1356,51 @@ static PHP_FUNCTION(event_buffer_set_callback)
 	}
 
 	if (zreadcb) {
-		zval_add_ref(zreadcb);
-		
 		if (bevent->readcb) {
 			zval_ptr_dtor(bevent->readcb);
+		} else {
+			bevent->readcb = emalloc(sizeof(zval));
 		}
-		bevent->readcb = zreadcb;
+		ZVAL_COPY(bevent->readcb, zreadcb);
 	} else {
 		if (bevent->readcb) {
 			zval_ptr_dtor(bevent->readcb);
+			efree(bevent->readcb);
 		}
 		bevent->readcb = NULL;
 	}
 
 	if (zwritecb) {
-		zval_add_ref(zwritecb);
-		
 		if (bevent->writecb) {
 			zval_ptr_dtor(bevent->writecb);
+		} else {
+			bevent->writecb = emalloc(sizeof(zval));
 		}
-		bevent->writecb = zwritecb;
+		ZVAL_COPY(bevent->writecb, zwritecb);
 	} else {
 		if (bevent->writecb) {
 			zval_ptr_dtor(bevent->writecb);
+			efree(bevent->writecb);
 		}
 		bevent->writecb = NULL;
 	}
 	
 	if (zerrorcb) {
-		zval_add_ref(zerrorcb);
-		
 		if (bevent->errorcb) {
 			zval_ptr_dtor(bevent->errorcb);
+		} else {
+			bevent->errorcb = emalloc(sizeof(zval));
 		}
-		bevent->errorcb = zerrorcb;
+		ZVAL_COPY(bevent->errorcb, zerrorcb);
 	}
 	
 	if (zarg) {
-		zval_add_ref(zarg);
 		if (bevent->arg) {
 			zval_ptr_dtor(bevent->arg);
+		} else {
+			bevent->arg = emalloc(sizeof(zval));
 		}
-		bevent->arg = zarg;
+		ZVAL_COPY(bevent->arg, zarg);
 	}
 
 	RETURN_TRUE;
