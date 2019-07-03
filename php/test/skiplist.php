@@ -56,7 +56,6 @@ class Skiplist
                     $el['next'][$hlv-1] = &$hd['next'][$hlv-1];
                     $hd['next'][$hlv-1] = &$el;
                 }
-                
                 if ($hlv > 1) {
                     $hlv--;
                 } else {
@@ -124,19 +123,18 @@ class Skiplist
                 continue;
             }
             
-            if ($hd['next'][$hlv-1]['id'] >= $id) {
-                if ($hd['next'][$hlv-1]['id'] == $id) {
-                    return true;//$hd['next'][$hlv-1];
-                }
+            if ($hd['next'][$hlv-1]['id'] > $id) {
                 if ($hlv > 1) {
                     $hlv--;
-                } elseif ($hd['next'][$hlv-1]['id'] == $hd['next'][$hlv-1]['next'][$hlv-1]['id']) {
-                    $hd = &$hd['next'][$hlv-1];
                 } else {
                     break;
                 }
                 continue;
             }
+            if ($hd['next'][$hlv-1]['id'] == $id) {
+                return true;//$hd['next'][$hlv-1];
+            }
+            
         } while (1);
         
         return false;
@@ -218,6 +216,25 @@ echo "\n";
 $sl->print();
 
 echo memory_get_usage()."\n";
+/* test 10w's add */
+$time1 = microtime(true);
+for ($i = 10000; $i >= 0; $i--) {
+    $sl->add(rand(10000000,99999999), $i);
+}
+
+$time2 = microtime(true);
+
+echo memory_get_usage()."\n";
+
+echo ($time2 - $time1)."s\n";
+/* test 10w's find */
+for ($i = 10000; $i > 0; $i--) {
+    $sl->find(rand(10000000,99999999));
+}
+
+$time3 = microtime(true);
+
+echo ($time3 - $time2)."s\n";
 
 // -1  27  31  35  36  46  50  53  53  53  64  67  67  70  76  85  90  92  92  93  95  96  null
 // -1  27          36  46      53      53      67  67  70  76  85              93          null
