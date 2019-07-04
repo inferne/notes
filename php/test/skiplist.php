@@ -4,6 +4,9 @@ class Skiplist
 {
     public $head = 0;
     
+    public $i = 0;
+    public $j = 0;
+    
     public function __construct()
     {
         // 哨兵
@@ -28,14 +31,17 @@ class Skiplist
         ];
         
         $hd = &$this->head;
-        if ($hd['lv'] <= $el['lv']) {
-            $hd['lv'] = $el['lv']+1;
-        }
         $hlv = $hd['lv'];
+        if ($hlv <= $elv) {
+            $hlv = $elv+1;
+            $hd['lv'] = $hlv;
+        }
         do {
-            if ($hd['next'][$hlv-1] == null) {
-                if ( $hlv <= $el['lv'] ) {
-                    $el['next'][$hlv-1] = &$hd['next'][$hlv-1];
+            $this->i++;
+            $next = &$hd['next'][$hlv-1];
+            if ($next == null) {
+                if ( $hlv <= $elv ) {
+                    $el['next'][$hlv-1] = &$next;
                     $hd['next'][$hlv-1] = &$el;
                 }
                 if ($hlv > 1) {
@@ -46,17 +52,34 @@ class Skiplist
                 continue;
             }
             
-            if ($hd['next'][$hlv-1]['id'] < $id ) {
-                $hd = &$hd['next'][$hlv-1];
+            if ($next['id'] < $id ) {
+                $hd = &$next;
                 continue;
             }
             
-            if ($hd['next'][$hlv-1]['id'] >= $id) {
-                if ( $hlv <= $el['lv'] ) {
-                    $el['next'][$hlv-1] = &$hd['next'][$hlv-1];
+            if ($next['id'] >= $id) {
+                if ( $hlv <= $elv ) {
+                    $el['next'][$hlv-1] = &$next;
                     $hd['next'][$hlv-1] = &$el;
                 }
                 if ($hlv > 1) {
+//                     if ($hd['next'][0] == $hd['next'][$hlv-1]) {
+//                         $next = &$hd['next'][0];
+//                         while ($next['lv'] > 1) {
+//                             $hd['next'][$next['lv']] = &$hd['next'][$next['lv']]['next'][$next['lv']];
+//                             unset($hd['next'][$next['lv']]);
+//                             $next['lv']--;
+//                         }
+//                     }
+//                     if ($hd['next'][$hlv-2]['lv'] == $hd['next'][$hlv-2]['next'][$hlv-2]['lv'] && $hd['next'][$hlv-2]['lv'] < $hlv) {
+//                         $this->print();
+//                         $nn = &$hd['next'][$hlv-2]['next'][$hlv-2];
+//                         $nn['lv']++;
+//                         $nn['next'][$hlv-1] = &$hd['next'][$hlv-1];
+//                         $hd['next'][$hlv-1] = &$nn;
+//                         $this->print();
+//                         sleep(1);
+//                     }
                     $hlv--;
                 } else {
                     break;
@@ -71,7 +94,8 @@ class Skiplist
         $hd = &$this->head;
         $hlv = $hd['lv'];
         do {
-            if ($hd['next'][$hlv-1] == null) {
+            $next = &$hd['next'][$hlv-1];
+            if ($next == null) {
                 if ($hlv > 1) {
                     $hlv--;
                 } else {
@@ -80,21 +104,20 @@ class Skiplist
                 continue;
             }
             
-            if ($hd['next'][$hlv-1]['id'] < $id ) {
-                $hd = &$hd['next'][$hlv-1];
+            if ($next['id'] < $id ) {
+                $hd = &$next;
                 continue;
             }
             
-            if ($hd['next'][$hlv-1]['id'] >= $id) {
-                if ($hd['next'][$hlv-1]['id'] == $id) {
-                    $tp = $hd['next'][$hlv-1];
+            if ($next['id'] >= $id) {
+                if ($next['id'] == $id) {
                     unset($hd['next'][$hlv-1]);
-                    $hd['next'][$hlv-1] = &$tp['next'][$hlv-1];
+                    $hd['next'][$hlv-1] = &$next['next'][$hlv-1];
                 }
                 if ($hlv > 1) {
                     $hlv--;
-                } elseif ($hd['next'][$hlv-1]['id'] == $hd['next'][$hlv-1]['next'][$hlv-1]['id']) {
-                    $hd = &$hd['next'][$hlv-1];
+                } elseif ($next['id'] == $next['next'][$hlv-1]['id']) {
+                    $hd = &$next;
                 } else {
                     break;
                 }
@@ -109,7 +132,9 @@ class Skiplist
         $hd = &$this->head;
         $hlv = $hd['lv'];
         do {
-            if ($hd['next'][$hlv-1] == null) {
+            $this->j++;
+            $next = &$hd['next'][$hlv-1];
+            if ($next == null) {
                 if ($hlv > 1) {
                     $hlv--;
                 } else {
@@ -118,12 +143,12 @@ class Skiplist
                 continue;
             }
             
-            if ($hd['next'][$hlv-1]['id'] < $id ) {
-                $hd = &$hd['next'][$hlv-1];
+            if ($next['id'] < $id ) {
+                $hd = &$next;
                 continue;
             }
             
-            if ($hd['next'][$hlv-1]['id'] > $id) {
+            if ($next['id'] > $id) {
                 if ($hlv > 1) {
                     $hlv--;
                 } else {
@@ -131,7 +156,7 @@ class Skiplist
                 }
                 continue;
             }
-            if ($hd['next'][$hlv-1]['id'] == $id) {
+            if ($next['id'] == $id) {
                 return true;//$hd['next'][$hlv-1];
             }
             
@@ -164,9 +189,11 @@ class Skiplist
             }
         } while (1);
         
-        $this->del($hd['id']);
-        
-        return $hd;
+        if ($hd != $this->head) {
+            $this->del($hd['id']);
+            return $hd;
+        }
+        return [];
     }
     
     public function print()
@@ -199,9 +226,9 @@ for ($i = 40; $i >= 0; $i--) {
 $sl->print();
 
 echo memory_get_usage()."\n";
-
+// exit();
 for ($i = 10; $i > 0; $i--) {
-    var_dump($sl->find($i));
+    $sl->find($i);
 }
 
 echo memory_get_usage()."\n";
@@ -235,6 +262,12 @@ for ($i = 10000; $i > 0; $i--) {
 $time3 = microtime(true);
 
 echo ($time3 - $time2)."s\n";
+
+echo $sl->i." ".$sl->j."\n";
+
+$i = 10000;
+$j = 10000;
+echo (int)($i*log($i, 2))." ".(int)($j*log($i, 2))."\n";
 
 // -1  27  31  35  36  46  50  53  53  53  64  67  67  70  76  85  90  92  92  93  95  96  null
 // -1  27          36  46      53      53      67  67  70  76  85              93          null
