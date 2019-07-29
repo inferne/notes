@@ -13,6 +13,11 @@ spl_autoload_register(function($class){
         include ROOT_DIR."/src/run/server/".strtolower($class).".php";
     }
 });
+    
+if (!extension_loaded('libevent')) {
+    echo "php libevent extension not load!";
+    exit();
+}
 
 try {
     $spiderman = new Spiderman();

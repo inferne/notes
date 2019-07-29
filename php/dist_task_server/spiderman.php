@@ -38,13 +38,13 @@ class Spiderman
             if (!$this->logFile) {
                 $this->logFile = ROOT_DIR."/logs/".basename(__FILE__, ".php").".log";
             }
+            Logger::$file = $this->logFile;
             /* redirect stdout, stderr */
-            $outlog = $this->logFile;
             $errlog = $this->logFile.".error";
             global $STDOUT,$STDERR;
             fclose(STDOUT);
             fclose(STDERR);
-            $STDOUT = fopen($outlog, "a");
+            $STDOUT = fopen($errlog, "a");
             $STDERR = fopen($errlog, "a");
         }
     }

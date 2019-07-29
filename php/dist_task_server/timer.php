@@ -31,6 +31,7 @@ class Timer
     {
         Logger::info("spiderman timer is running!");
         $timer = new TimerWheel();
+        $timer->setLogFile(ROOT_DIR."/logs/timer.log");
 //         $this->shmop->isMaster = 1;
         while (1) {
             //Logger::info("-----------------------start manager------------------------");
