@@ -10,21 +10,32 @@ class Database
     public $_last_query;
     
     public $_db;
+
+    public $_values;
+
+    public $_config;
     
     public function __construct($config){
         $dsn = "mysql:host=localhost;_dbname=test";
+        $this->_config = $config;
+        $this->connect();
+    }
+    
+    public function connect(){
+        $config = $this->_config;
         try {
             $this->_db = new PDO($config['dsn'], $config['username'], $config['password'], array(
                 PDO::ATTR_TIMEOUT => 1,
                 PDO::ATTR_CASE   => PDO::CASE_LOWER,
                 PDO::MYSQL_ATTR_INIT_COMMAND   => 'set names utf8',
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ));
         } catch (PDOException $e){
             echo "Connection failed ".$e->getMessage().PHP_EOL;
             throw new Exception($e->getMessage());
         }
     }
-    
+
     /**
      * 查询列表
      * @param unknown $fields
@@ -45,13 +56,10 @@ class Database
             $limit = "limit ".($page-1)*$pagesize.",".$pagesize;
         }
         $sql = "select $fields from ".$table . $where." ".$orderby." $limit";
-        echo $sql.PHP_EOL;
-        $this->_last_query = $sql;
-        $sth = $this->_db->prepare($sql);
-        $sth->execute();
-        return $sth->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->exec($sql, 'select');
     }
-    
+
     /**
      * 获取一条信息
      * @param string $fields
@@ -81,18 +89,24 @@ class Database
                 if(in_array($key, array('and', 'or', 'xor'))){
                     $where .= " $key (".$this->where($value).")";
                 }elseif(is_int($value)){
-                    $where .= ($where ? ' and ' : '')."`$key` = {$value}";
+                    $where .= ($where ? ' and ' : '')."`$key` = ?";
+                    $this->_values[] = $value;
                 }elseif (is_array($value)){
                     if(self::is_assoc($value)){
                         foreach ($value as $k => $v){
                             if(in_array($k, array(">","<",">=","<=","<>","!=","like"))){
-                                $where .= ($where ? ' and ' : '')."`$key` $k '{$v}'";
+                                $where .= ($where ? ' and ' : '')."`$key` $k ?";
+                                $this->_values[] = $v;
                             }
                         }
-                    }else
-                        $where .= ($where ? ' and ' : '')."`$key` in ('".implode("','", $value)."')";
-                }else
-                    $where .= ($where ? ' and ' : '')."`$key` = '{$value}'";
+                    }else{
+                        $where .= ($where ? ' and ' : '')."`$key` in (".implode(",", array_fill(0, count($value), '?')).")";
+                        $this->_values = array_merge($this->_values, $value);
+                    }
+                }else{
+                    $where .= ($where ? ' and ' : '')."`$key` = ?";
+                    $this->_values[] = $value;
+                }
             }
         }
         return $where;
@@ -130,12 +144,13 @@ class Database
     public function update($table, $arr_data, $arr_where){
         $set = "";
         foreach ($arr_data as $key => $value){
-            $set .= ($set ? ',': '')."`$key` = ".$value;
+            $set .= ($set ? ',': '')."`$key` = ?";
+            $this->_values[] = $value;
         }
         $where = $this->where($arr_where);
         $sql = "update ".$table." set $set where $where";
-        $this->_last_query = $sql;
-        return $this->_db->query($sql);
+
+        return $this->exec($sql, 'update');
     }
 
     /**
@@ -148,17 +163,13 @@ class Database
         $keys = array_keys($arr_data[0]);
         $fields = "(`".implode("`,`", $keys)."`)";
         foreach ($arr_data as $val){
-            $values .= "('".implode("','", array_values($val))."'),";
+            $values .= "(".implode(",", array_fill(0, count($val), '?'))."),";
+            $this->_values = array_merge($this->_values, array_values($val));
         }
         $values = substr($values, 0, strlen($values) - 1);
         $sql = "insert into $table $fields values $values";
-        $this->_last_query = $sql;
-        $stm = $this->_db->query($sql);
-        //var_dump($stm);
-        if($stm == false){
-            return "insert error!";
-        }
-        return $stm->rowCount();
+        
+        return $this->exec($sql, 'insertArray');
     }
     
     /**
@@ -207,4 +218,51 @@ class Database
         $result = $this->selectToArray($index, $fields, $result);
         return $result;
     }
+
+    public function exec($sql, $type){
+        $sth = $this->_db->prepare($sql);
+        foreach ($this->_values as $key => $value) {
+            $sth->bindValue($key+1, $value);
+        }
+        $this->printSql($sql);
+        try {
+            $sth->execute();
+        } catch (PDOException $e) {
+            if ($e->getCode() == 'HY000') { // MySQL server has gone away
+                sleep(1); // avoid database exceptions that cause a lot of log
+                $this->connect();
+                return $this->exec($sql, $type);
+            }
+            return -1;
+        }
+        $this->_values = [];
+        switch ($type) {
+            case 'select':
+                $result = $sth->fetchAll(PDO::FETCH_ASSOC);
+                break;
+            case 'insert':
+                $result = $sth->lastInsertId();
+                break;
+            default:
+                $result = $sth->rowCount();
+                break;
+        }
+        return $result;
+    }
+
+    public function printSql($str){
+        $sql = '';
+        $j = 0;
+        for ($i=0; $i < strlen($str); $i++) { 
+            if ($str[$i] == '?') {
+                $sql .= "'".$this->_values[$j]."'";
+                $j++;
+            } else {
+                $sql .= $str[$i];
+            }
+        }
+        echo $sql.PHP_EOL;
+        $this->_last_query = $sql;
+    }
+    
 }
