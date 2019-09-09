@@ -32,6 +32,13 @@ ratings = pd.read_csv('data.csv', sep=',', names=ratings_cols, encoding='utf-8')
 contents_cols = ['content_id', 'title', 'channel', 'keywords', 'new_keywords']
 contents = pd.read_csv('content1000.csv', sep=',', names=contents_cols, encoding='utf-8')
 
+keywords_cols = ['keywords']
+contents['keywords'] = pd.read_csv('keywords', sep=',', names=keywords_cols, encoding='utf-8')
+print(contents)
+genre_cols = ['genre', 'count']
+genre = pd.read_csv('genre', sep=' ', names=genre_cols, encoding='utf-8')
+#print(genre)
+#exit()
 def dict_content_id(data):
     dict = {}
     i = 0
@@ -266,7 +273,7 @@ def user_recommendations(model, measure=DOT, exclude_rated=False, k=6):
         score_key: list(scores),
         'content_id': contents['content_id'],
         'titles': contents['title'],
-        'channel': contents['channel'],
+        'keywords': contents['keywords'],
     })
     if exclude_rated:
       # remove movies that are already rated
@@ -292,7 +299,7 @@ def content_neighbors(model, title_substring, measure=DOT, k=6):
   df = pd.DataFrame({
       score_key: list(scores),
       'titles': contents['title'],
-      'channel': contents['channel']
+      'keywords': contents['keywords']
   })
   display.display(df.sort_values([score_key], ascending=False).head(k))
 
