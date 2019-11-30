@@ -9,6 +9,9 @@ import sklearn.manifold
 import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.ERROR)
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 # Add some convenience functions to Pandas DataFrame.
 pd.options.display.max_rows = 10
 pd.options.display.float_format = '{:.3f}'.format
@@ -27,19 +30,20 @@ pd.DataFrame.flatten_cols = flatten_cols
 # users = pd.read_csv('users.csv', sep=',', names=users_cols, encoding='utf-8')
 
 ratings_cols = ['user_id', 'content_id', 'rating']
-ratings = pd.read_csv('ratings.csv', sep=',', names=ratings_cols, encoding='utf-8')
+ratings = pd.read_csv('ratings10000.csv', sep=',', names=ratings_cols, encoding='utf-8')
 print(ratings)
 
 contents_cols = ['content_id', 'title', 'channel', 'keywords', 'new_keywords']
-contents = pd.read_csv('content1000.csv', sep=',', names=contents_cols, encoding='utf-8')
-
+contents = pd.read_csv('content10000.csv', sep=',', names=contents_cols, encoding='utf-8')
+print(contents)
 keywords_cols = ['keywords']
-contents['keywords'] = pd.read_csv('keywords', sep=',', names=keywords_cols, encoding='utf-8')
+contents['keywords'] = pd.read_csv('keywords10000', sep=',', names=keywords_cols, encoding='utf-8')
 print(contents)
 genre_cols = ['genre', 'count']
-genre = pd.read_csv('genre', sep=' ', names=genre_cols, encoding='utf-8')
+genre = pd.read_csv('genre10000', sep=' ', names=genre_cols, encoding='utf-8')
+print(genre.get_value(index=67, col='genre'))
 # print(genre.shape[0])
-#exit()
+# exit()
 def dict_content_id(data):
     dict = {}
     i = 0
@@ -77,6 +81,8 @@ contents_ratings = contents.merge(
 print(contents_ratings[['title', 'rating count', 'rating mean']]
 .sort_values('rating count', ascending=False)
 .head(10))
+
+print(ratings)
 
 def build_rating_sparse_tensor(ratings_df):
     """
@@ -202,46 +208,6 @@ class CFModel(object):
           ax.legend()
       return results
 
-def build_model(ratings, embedding_dim=3, init_stddev=1.):
-  """
-  Args:
-    ratings: a DataFrame of the ratings
-    embedding_dim: the dimension of the embedding vectors.
-    init_stddev: float, the standard deviation of the random initial embeddings.
-  Returns:
-    model: a CFModel.
-  """
-  # Split the ratings DataFrame into train and test.
-  train_ratings, test_ratings = split_dataframe(ratings)
-  # SparseTensor representation of the train and test datasets.
-  A_train = build_rating_sparse_tensor(train_ratings)
-  A_test = build_rating_sparse_tensor(test_ratings)
-  #print(A_train, A_test)
-  #print(A_train.dense_shape[0], A_train.dense_shape[1])
-  # Initialize the embeddings using a normal distribution.
-  U = tf.Variable(tf.random_normal(
-      [A_train.dense_shape[0], embedding_dim], stddev=init_stddev))
-  V = tf.Variable(tf.random_normal(
-      [A_train.dense_shape[1], embedding_dim], stddev=init_stddev))
-  #print(U, V)
-  train_loss = sparse_mean_square_error(A_train, U, V)
-  test_loss = sparse_mean_square_error(A_test, U, V)
-  #print(train_loss, test_loss)
-  metrics = {
-      'train_error': train_loss,
-      'test_error': test_loss
-  }
-  embeddings = {
-      "user_id": U,
-      "content_id": V
-  }
-  return CFModel(embeddings, train_loss, [metrics])
-
-print(ratings)
-
-model = build_model(ratings, embedding_dim=30, init_stddev=0.05)
-model.train(num_iterations=1000, learning_rate=10.)
-
 DOT = 'dot'
 COSINE = 'cosine'
 def compute_scores(query_embedding, item_embeddings, measure=DOT):
@@ -265,8 +231,10 @@ def compute_scores(query_embedding, item_embeddings, measure=DOT):
 
 def user_recommendations(model, measure=DOT, exclude_rated=False, k=6):
   USER_RATINGS = 1
-  id = 235
+  id = 67
   if USER_RATINGS:
+    print(model.embeddings["user_id"])
+    print(model.embeddings["content_id"])
     scores = compute_scores(
         model.embeddings["user_id"][id], model.embeddings["content_id"], measure)
     #print(scores, len(scores))
@@ -306,18 +274,6 @@ def content_neighbors(model, title_substring, measure=DOT, k=6):
   # df.sort_values([score_key], ascending=False).to_csv('scores.csv', index=False, header=False)
   # exit()
   display.display(df.sort_values([score_key], ascending=False).head(k))
-
-user_recommendations(model, measure=DOT, k=5)
-user_recommendations(model, measure=COSINE, k=5)
-
-content_neighbors(model, "赵本山", DOT)
-content_neighbors(model, "赵本山", COSINE)
-
-model_lowinit = build_model(ratings, embedding_dim=30, init_stddev=0.05)
-model_lowinit.train(num_iterations=1000, learning_rate=10.)
-content_neighbors(model_lowinit, "赵本山", DOT)
-content_neighbors(model_lowinit, "赵本山", COSINE)
-#movie_embedding_norm([model, model_lowinit])
 
 def gravity(U, V):
   """Creates a gravity loss given two embedding matrices."""
@@ -366,12 +322,12 @@ def build_regularized_model(
   return CFModel(embeddings, total_loss, [losses, loss_components])
 
 reg_model = build_regularized_model(
-    ratings, regularization_coeff=0.1, gravity_coeff=1.0, embedding_dim=30,
+    ratings, regularization_coeff=0.1, gravity_coeff=1.0, embedding_dim=35,
     init_stddev=.05)
-reg_model.train(num_iterations=2000, learning_rate=10.)
+reg_model.train(num_iterations=2000, learning_rate=20.)
 
 user_recommendations(reg_model, DOT, exclude_rated=False, k=10)
-content_neighbors(reg_model, "赵本山", DOT)
-content_neighbors(reg_model, "赵本山", COSINE)
+# content_neighbors(reg_model, "赵本山", DOT)
+# content_neighbors(reg_model, "赵本山", COSINE)
 
 

@@ -7,7 +7,7 @@ import codecs
 
 data_root = pathlib.Path('./')
 
-contents = (data_root/"content1000.csv").open(encoding='utf-8').readlines()
+contents = (data_root/"content10000.csv").open(encoding='utf-8').readlines()
 contents = [line[1:-2].split('","') for line in contents]
 #print(contents[0])
 g = {}
@@ -16,7 +16,7 @@ for x in contents:
     genre = list(set(genre))
     #print(x[2], x[3], x[4], genre)
     #exit()
-    with codecs.open('keywords', 'a', 'utf-8') as f:
+    with codecs.open('keywords10000', 'a', 'utf-8') as f:
         f.write(" ".join(genre) + '\n')
     #exit()
     for y in genre:
@@ -31,7 +31,7 @@ g = sorted(g.items(), key=lambda item:item[1], reverse=True)
 
 #print(g)
 
-with codecs.open("genre", 'w', 'utf-8') as f:
+with codecs.open("genre10000", 'w', 'utf-8') as f:
     i = 0;
     for x in g:
         if x[0] == 0 or x[0] == '':

@@ -246,7 +246,7 @@ def sparse_mean_square_error(sparse_ratings, user_embeddings, movie_embeddings):
       model's predictions.
   """
   print(user_embeddings, movie_embeddings, sparse_ratings.indices)
-  exit()
+  # exit()
   predictions = tf.gather_nd(
       tf.matmul(user_embeddings, movie_embeddings, transpose_b=True),
       sparse_ratings.indices)
@@ -324,8 +324,8 @@ class CFModel(object):
       iterations = []
       metrics = self._metrics or ({},)
       metrics_vals = [collections.defaultdict(list) for _ in self._metrics]
-      print(train_op, metrics)
-      exit()
+      # print(train_op, metrics)
+      # exit()
       # Train and append results.
       for i in range(num_iterations + 1):
         _, results = self._session.run((train_op, metrics))
