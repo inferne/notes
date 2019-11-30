@@ -221,8 +221,10 @@ class Database
 
     public function exec($sql, $type){
         $sth = $this->_db->prepare($sql);
-        foreach ($this->_values as $key => $value) {
-            $sth->bindValue($key+1, $value);
+        if ($this->_values) {
+            foreach ($this->_values as $key => $value) {
+                $sth->bindValue($key+1, $value);
+            }
         }
         $this->printSql($sql);
         try {
