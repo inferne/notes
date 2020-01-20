@@ -19,7 +19,7 @@ class TimerWheel
     public $fc = ['s', 'i', 'H', 'd', 'm', 'w'];
     public $ary = [60, 60, 24, 0, 12, 7];
     
-    public $uJiffies = 0; //当前时间
+    public $current = 0; //当前时间
     
     public $lastTime;
     
@@ -52,13 +52,13 @@ class TimerWheel
     }
     
     /**
-     * uExpires
+     * expires
      * format a recently exec time, then make a expires time
      * receive a frequency like crontab * * * * * *
      * @param string $frequency
      * @return number
      */
-    public function uExpires(string $frequency)
+    public function expires(string $frequency)
     {
         $fr = explode(" ", $frequency);
         $fields = []; //列举多维度的有效时间数组
@@ -147,7 +147,7 @@ class TimerWheel
         $datetime = $year."-".$fields[4][$tk[4]]."-".$fields[3][$tk[3]]." ".$fields[2][$tk[2]].":".$fields[1][$tk[1]].":".$fields[0][$tk[0]];
         
         $this->printLog(__FUNCTION__." ".date("Y-m-d H:i:s")." ".$frequency." => ".$datetime);
-        return (int)((strtotime($datetime) - (time() - $this->uJiffies))); //定时器到期时间
+        return (int)((strtotime($datetime) - (time() - $this->current))); //定时器到期时间
     }
     
     /**
@@ -158,19 +158,18 @@ class TimerWheel
      */
     public function createTask($frequency, $id)
     {
-        $this->printLog("-------------------------begin createTask---------------------------");
         if (isset($this->arrTask[$id])) {
             $this->arrTask[$id]['fre'] = $frequency;
-            $this->arrTask[$id]['uExpires'] = $this->uExpires($frequency);
+            $this->arrTask[$id]['expires'] = $this->expires($frequency);
+            $task = $this->arrTask[$id];
         } else {
-            $task = ['fre' => $frequency, 'id' => $id, 'uExpires' => $this->uExpires($frequency)];
+            $task = ['fre' => $frequency, 'id' => $id, 'expires' => $this->expires($frequency)];
             $this->arrTask[$id] = $task;
         }
         $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id]));
         
         $this->addTask($this->arrTask[$id]);
         
-        $this->printLog("--------------------------end createTask----------------------------");
         return $task;
     }
     
@@ -182,33 +181,33 @@ class TimerWheel
     {
         $id = $task['id'];
         
-        $uExpires = $task['uExpires']; //距离定时器到期时间
-        $uDueTime = $uExpires - $this->uJiffies; //触发剩余时间
+        $expires = $task['expires']; //定时器到期时间
+        $uDueTime = $expires - $this->current; //触发剩余时间
         //$this->printLog(__FUNCTION__." ".$uDueTime." ".json_encode($this->arrTask));
         
         if ($uDueTime < $this->tvrSize) {
-            $i = $uExpires & $this->tvrMask;
+            $i = $expires & $this->tvrMask;
             $this->timerManager[0][$i][$id] = &$this->arrTask[$id];
             $this->arrTask[$id][1] = 0; //轮的层级
         } elseif ($uDueTime < 1 << ($this->tvrBits + $this->tvnBits)) {
-            $i = ($uExpires >> $this->tvrBits) & $this->tvnMask;
+            $i = ($expires >> $this->tvrBits) & $this->tvnMask;
             $this->timerManager[1][$i][$id] = &$this->arrTask[$id];
             $this->arrTask[$id][1] = 1;
         } elseif ($uDueTime < 1 << ($this->tvrBits + $this->tvnBits * 2)) {
-            $i = ($uExpires >> ($this->tvrBits + $this->tvnBits)) & $this->tvnMask;
+            $i = ($expires >> ($this->tvrBits + $this->tvnBits)) & $this->tvnMask;
             $this->timerManager[2][$i][$id] = &$this->arrTask[$id];
             $this->arrTask[$id][1] = 2;
         } elseif ($uDueTime < 1 << ($this->tvrBits + $this->tvnBits * 3)) {
-            $i = ($uExpires >> ($this->tvrBits + $this->tvnBits * 2)) & $this->tvnMask;
+            $i = ($expires >> ($this->tvrBits + $this->tvnBits * 2)) & $this->tvnMask;
             $this->timerManager[3][$i][$id] = &$this->arrTask[$id];
             $this->arrTask[$id][1] = 3;
         } elseif ($uDueTime < 1 << ($this->tvrBits + $this->tvnBits * 4)) {
-            $i = ($uExpires >> ($this->tvrBits + $this->tvnBits * 3)) & $this->tvnMask;
+            $i = ($expires >> ($this->tvrBits + $this->tvnBits * 3)) & $this->tvnMask;
             $this->timerManager[4][$i][$id] = &$this->arrTask[$id];
             $this->arrTask[$id][1] = 4;
         }
         $this->arrTask[$id][2] = $i; //轮中的槽
-        $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id])." ".$uDueTime);
+        $this->printLog(__FUNCTION__." ".json_encode($this->arrTask[$id])." DueTime:".$uDueTime);
         //echo __FUNCTION__." ".json_encode($this->arrTask[$id])."\n";
     }
     
@@ -239,13 +238,13 @@ class TimerWheel
     public function cascadeTask($lv)
     {
         if ($lv == 1) {
-            $i = $this->uJiffies >> $this->tvrBits;
+            $i = $this->current >> $this->tvrBits;
         } else {
-            $i = $this->uJiffies >> ($this->tvrBits + $this->tvnBits * ($lv) - 1);
+            $i = $this->current >> ($this->tvrBits + $this->tvnBits * ($lv) - 1);
         }
         
-        if ($i > 0 && 0 == $i % $this->tvnSize) { //判断时间进位
-            $this->cascadeTask(++$lv);
+        if ($i > 0 && 0 == $i & $this->tvnMask) { //判断时间进位
+            $this->cascadeTask($lv+1);
         }
         
         $i %=  $this->tvnSize;
@@ -264,16 +263,16 @@ class TimerWheel
         if ($this->lastTime != $now) {
             //$this->printLog("++++++++++++++++++++++++++++begin getTask++++++++++++++++++++++++++++");
             while ($this->lastTime != $now) { //避免程序执行产生的时间误差导致跳过>1秒
-                if ($this->uJiffies != 0 && ($this->uJiffies % $this->tvrSize) == 0) {
-                    $this->printLog("jiff=".$this->uJiffies);
+                if ($this->current != 0 && ($this->current & $this->tvrMask) == 0) {
+                    $this->printLog("jiff=".$this->current);
                     $this->cascadeTask(1);
                 }
                 
-                $taskList = array_merge($taskList, $this->timerManager[0][$this->uJiffies % $this->tvrMask]);
-                $this->uJiffies++; //瞬间时间++
+                $taskList = array_merge($taskList, $this->timerManager[0][$this->current & $this->tvrMask]);
+                $this->current++; //当前时间++
                 $this->lastTime++;
                 foreach ($taskList as $task) {
-                    $this->printLog(__FUNCTION__." ".json_encode($task)." ".($this->uJiffies-1));
+                    $this->printLog(__FUNCTION__." ".json_encode($task)." ".($this->current-1));
                     $this->updateTask($task['id']);
                 }
             }
@@ -292,7 +291,7 @@ class TimerWheel
         if (is_array($msg)) {
             $msg = json_encode($msg);
         }
-        $msg = date("Y-m-d H:i:s")." ".posix_getpid()." ".$msg."\n";
+        $msg = date("Y-m-d H:i:s")." ".posix_getpid()." ".$msg." current:".$this->current."\n";
         if ($this->logFile) {
             file_put_contents($this->logFile, $msg, FILE_APPEND | LOCK_EX);
         } else {
@@ -307,7 +306,6 @@ $timer = new TimerWheel();
 // $timer->createTask("15 10-15 * * * *", 333);
 // $timer->createTask("*/10 * * * * *", 222);
 // $timer->createTask("15 */2 * * * *", 333);
-$timer->createTask("27 */5 * * * *", 444);
 // $timer->createTask("25 14 */3 09 * *", 555);
 // $timer->createTask("25 10 */3 * * *", 555);
 // $timer->createTask("* * * * * *", 111);
@@ -320,7 +318,12 @@ $timer->createTask("27 */5 * * * *", 444);
 // $timer->createTask("* * * 09 * *", 556);
 // $timer->createTask("30 12 * * 1 *", 666);
 // $timer->createTask("* 12 * * 1 *", 666);
+$timer->createTask("* * * * * *", 666);
+//exit();
 
-for ($i = 0; $i < 2000; $i++) {
+for ($i = 0; $i < 300; $i++) {
     $timer->getTask();
+    if (rand(0, 100) == 55) {
+        sleep(1);
+    }
 }

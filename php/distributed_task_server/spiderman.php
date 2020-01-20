@@ -82,7 +82,12 @@ class Spiderman
                 $this->cpid = $ppid;
             }
             
-            $this->runServer();
+            try {
+                $this->runServer();
+            } catch (Exception $e) {
+                posix_kill($pid, SIGINT);
+                posix_kill($ppid, SIGINT);
+            }
         } elseif ($pid == 0) {
             if ($info['role'] == 'timer') { 
                 $this->runTimer();
@@ -116,9 +121,13 @@ class Spiderman
         $client = new Client();
         $client->wsfd = $this->sockets[0];
         $client->wtfd = $this->sockets[1];
-        if ( $client->create($timer['ip'], $this->port) ) {
-            $client->run();
-        }
+        do {
+            $ret = $client->create($timer['ip'], $this->port);
+            if ( $ret ) {
+                $client->run();
+            }
+            sleep(3);
+        } while(!$ret);
         exit();
     }
     
@@ -175,6 +184,18 @@ class Spiderman
         }
         
         return 1;
+    }
+    
+    public static function reStart()
+    {
+        exec("ps -ef|grep spiderman|grep -v grep| awk '{print $2}'", $output);
+        system("php src/run/server/start.php -d");
+        foreach ($output as $pid) {
+            if ($pid != posix_getpid()) {
+                posix_kill($pid, SIGINT);
+            }
+        }
+        exit();
     }
     
     /**

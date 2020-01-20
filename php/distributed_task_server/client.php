@@ -33,7 +33,7 @@ class Client
             return 0;
         }
         stream_set_blocking($this->cfd, 0);
-        Logger::info("client connect server is ok!");
+        Logger::info("client connect server[".$ip."] is ok!");
         return $this->cfd;
     }
     
@@ -134,6 +134,11 @@ class Client
                     Logger::error("ping server failed!");
                 }
             }
+            if (posix_getppid() == 1) { // server process down ?!
+                // restart
+                sleep(3);
+                Spiderman::reStart();
+            }
         } while (1) ;
     }
     
@@ -156,16 +161,17 @@ class Client
      */
     public function checkTimer()
     {
-        $flag = 0;
         $tasker = Member::getTaskerAll();
-        $i = count($tasker)-1 > $this->n ? $this->n : count($tasker)-1;
+        $tip = ip2long(Member::getLocalIp());
+        unset($tasker[$tip]);
+        $i = count($tasker) > $this->n ? $this->n : count($tasker);
+        $arrFlags = [];
         for ( ; $i > 0; $i--) {
-            do {
-                $k = array_rand($tasker); // rand
-            } while ($tasker[$k]['ip'] == Member::getLocalIp());// rand get a not our ip
-            
+            $arrFlags[$i] = 0;
+            $k = array_rand($tasker); // rand
             $client = new Client();
             $r = $client->create($tasker[$k]['ip'], $this->port);
+            unset($tasker[$k]);
             if (!$r) {
                 continue;
             }
@@ -183,18 +189,19 @@ class Client
             Logger::debug($result);
             if ($result['mtype'] & Protocol::RESPONSE) {
                 if ( $this->response($result) ) {
-                    $flag = 1;
+                    $arrFlags[$i] = 1;
                     $client->close();
                     break;
-                } elseif ($flag == 0) {
-                    $flag = 2;
+                } else {
+                    $arrFlags[$i] = 2;
                 }
             }
             $client->close();
         }
-        if ($flag == 1) { // timer is up!
+        $ac = array_count_values($arrFlags);
+        if ($ac[1] > 0) { // timer is up!
             return 1;
-        } elseif ($flag == 2) { // timer is down!
+        } elseif ($ac[2] > count($arrFlags)/2) { // timer is down!
             socket_write($this->wsfd, "timer is down!");
             exit(112); // host is down
         } else {
