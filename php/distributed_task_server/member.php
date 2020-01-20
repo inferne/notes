@@ -2,7 +2,7 @@
 
 class Member
 {
-    public static $config = ROOT_DIR."/src/run/server/spiderman.json";
+    public static $config = ROOT_DIR."/spiderman.json";
     
     public static $all;
     

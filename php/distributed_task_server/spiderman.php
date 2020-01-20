@@ -2,7 +2,7 @@
 
 class Spiderman
 {
-    public $config = ROOT_DIR."/src/run/server/spiderman.json";
+    public $config = ROOT_DIR."/spiderman.json";
     
     public $logFile;
     

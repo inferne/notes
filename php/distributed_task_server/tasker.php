@@ -4,7 +4,7 @@ class Tasker
 {
     public $rfd;
     
-    public $arrWorker;
+    public $arrWorker = [];
     
     public function __construct()
     {

@@ -231,7 +231,7 @@ class Client
         
         $total = 0;
         for ($i = 1; $i < count($next); $i++) {
-            $total += $next[$i] - $prev[$i];
+            $total += (int)$next[$i] - (int)$prev[$i];
         }
         $idle = $next[5] - $prev[5];
         
