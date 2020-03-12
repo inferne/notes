@@ -91,15 +91,29 @@ func BuildQuery(data map[string]string) string {
 	return query
 }
 
-var h = []string{"0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"}
+const upperhex = "0123456789ABCDEF"
 
 func UrlEncode(bytes []byte) string {
-	str := ""
-	for _,v := range bytes {
-		str += "%" + fmt.Sprintf("%02s", conv10to16(int(v), 16))
+	buf := make([]byte, len(bytes)*3)
+	i := 0
+	for _, v := range bytes {
+		buf[i] = '%'
+		buf[i+1] = upperhex[v>>4]
+		buf[i+2] = upperhex[v&15]
+		i += 3
 	}
-	return str
+	return string(buf)
 }
+
+var h = []string{"0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"}
+
+// func UrlEncode(bytes []byte) string {
+// 	str := ""
+// 	for _,v := range bytes {
+// 		str += "%" + fmt.Sprintf("%02s", conv10to16(int(v), 16))
+// 	}
+// 	return str
+// }
 
 var reserved = map[byte]string{'!':"%21", '#':"%23", '$':"%24", '&':"%26", '\'':"%27", '(':"%28", ')':"%29", '*':"%2A", '+':"%2B", ',':"%2C", '/':"%2F", ':':"%3A", ';':"%3B", '=':"%3D", '?':"%3F", '@':"%40", '[':"%5B", ']':"%5D"}
 
