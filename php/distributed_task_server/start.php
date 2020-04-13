@@ -1,13 +1,18 @@
 <?php
 
-define("ROOT_DIR", __DIR__);
+ini_set("memory_limit", "1024M");
+
+define("ROOT_DIR", dirname(dirname(dirname(__DIR__))));
 
 chdir(ROOT_DIR);
 
 spl_autoload_register(function($class){
     //echo strtolower($class).".php"."\n";
-    if (is_file(ROOT_DIR."/".strtolower($class).".php")) {
-        include ROOT_DIR."/".strtolower($class).".php";
+    if (is_file(ROOT_DIR."/src/app/Lib/".$class.".php")) {
+        include ROOT_DIR."/src/app/Lib/".$class.".php";
+    }
+    if (is_file(ROOT_DIR."/src/run/server/".strtolower($class).".php")) {
+        include ROOT_DIR."/src/run/server/".strtolower($class).".php";
     }
 });
     

@@ -75,6 +75,10 @@ class Timer
             }
             //Logger::info("-----------------------stop manager------------------------");
             sleep(1);
+            if (posix_getppid() == 1) { // server process down ?!
+                // restart
+                Spiderman::reStart();
+            }
         }
     }
     

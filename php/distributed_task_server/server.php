@@ -214,15 +214,20 @@ class Server
                 }
                 $id = $el['id'];
                 $fd = $this->client['connections'][$el['dt']];
-                Logger::debug("send to fd=".(int)$fd.", id=$id% (".stream_socket_get_name($fd, 1).") $task");
-                $msg = Protocol::build(Protocol::REQUEST, Protocol::TASK, $task);
-                if ($this->event->write($fd, $msg)) {
-                    Logger::debug("write ".(int)$fd." success!");
-                    $id = ($id > 10 ? $id - rand(5, 10) : $id);// rand less 5-10 cpu idle
+                if ($fd != 0) {
+                    Logger::debug("send to fd=".(int)$fd.", id=$id% (".stream_socket_get_name($fd, 1).") $task");
+                    $msg = Protocol::build(Protocol::REQUEST, Protocol::TASK, $task);
+                    if ($this->event->write($fd, $msg)) {
+                        Logger::debug("write ".(int)$fd." success!");
+                        $id = ($id > 10 ? $id - rand(5, 10) : $id);// rand less 5-10 cpu idle
+                    } else {
+                        Logger::debug("write ".(int)$fd." failed!");
+                    }
+                    $this->load->upd($id, (int)$fd);
                 } else {
-                    Logger::debug("write ".(int)$fd." failed!");
+                    Logger::info("fd ".$el['dt']." not in connections! is reset?");
+                    $this->load->del($el['dt']);
                 }
-                $this->load->upd($id, (int)$fd);
             } else {
                 Logger::info("no tasker client could used!");
             }

@@ -2,7 +2,7 @@
 
 class Spiderman
 {
-    public $config = ROOT_DIR."/spiderman.json";
+    public $config = ROOT_DIR."/src/run/server/spiderman.json";
     
     public $logFile;
     
@@ -189,12 +189,12 @@ class Spiderman
     public static function reStart()
     {
         exec("ps -ef|grep spiderman|grep -v grep| awk '{print $2}'", $output);
-        system("php src/run/server/start.php -d");
         foreach ($output as $pid) {
             if ($pid != posix_getpid()) {
                 posix_kill($pid, SIGINT);
             }
         }
+        system("php src/run/server/start.php -d");
         exit();
     }
     

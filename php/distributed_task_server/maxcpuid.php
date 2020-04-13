@@ -176,80 +176,9 @@ class MaxCpuId
         }
         
         /* delete from old position */
-        $id = $this->sl[$dt]['id'];
-        $hd = &$this->head;
-        $hlv = $hd['lv'];
-        do {
-            $next = &$hd['next'][$hlv-1];
-            if ($next == null) {
-                if ($hlv > 1) {
-                    $hlv--;
-                } else {
-                    break;
-                }
-                continue;
-            }
-            
-            if ($next['id'] < $id ) {
-                $hd = &$next;
-                continue;
-            }
-            
-            if ($next['id'] >= $id) {
-                if ($next['dt'] == $dt) {
-                    unset($hd['next'][$hlv-1]);
-                    $hd['next'][$hlv-1] = &$next['next'][$hlv-1];
-                }
-                if ($hlv > 1) {
-                    $hlv--;
-                } elseif ($next['id'] == $next['next'][$hlv-1]['id']) {
-                    $hd = &$next;
-                } else {
-                    break;
-                }
-                continue;
-            }
-        } while (1);
+        $this->del($dt);
         /* add to new position */
-        $el = &$this->sl[$dt];
-        $el['id'] = $id = $nid;
-        $elv = $el['lv'];
-        $hd = &$this->head;
-        $hlv = $hd['lv'];
-        do {
-            $next = &$hd['next'][$hlv-1];
-            if ($next == null) {
-                if ( $hlv <= $elv ) {
-                    $el['next'][$hlv-1] = &$next;
-                    $hd['next'][$hlv-1] = &$el;
-                }
-                if ($hlv > 1) {
-                    $hlv--;
-                } else {
-                    break;
-                }
-                continue;
-            }
-            
-            if ($next['id'] < $id ) {
-                $hd = &$next;
-                continue;
-            }
-            
-            if ($next['id'] >= $id) {
-                if ( $hlv <= $elv ) {
-                    $el['next'][$hlv-1] = &$next;
-                    $hd['next'][$hlv-1] = &$el;
-                }
-                
-                if ($hlv > 1) {
-                    $hlv--;
-                } else {
-                    break;
-                }
-                continue;
-            }
-        } while (1);
+        $this->add($nid, $dt);
     }
     
     /**
