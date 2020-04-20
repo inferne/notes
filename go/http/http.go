@@ -50,6 +50,28 @@ func Get(url string) ([]byte, error) {
 	return body, err
 }
 
+func PostRaw(url string, data string) ([]byte, error) {
+	client := &http.Client{Transport: transport()}
+	// fmt.Printf("%+v\n", FormData(data))
+	req, err := http.NewRequest("POST", url, strings.NewReader(data))
+	// req, err := http.NewRequest("POST", url, bd)
+	if err != nil {
+		fmt.Println("NewRequest", url, err)
+		return []byte{}, err
+	}
+	// req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := client.Do(req)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer resp.Body.Close()
+	return body, err
+}
+
 func PostForm(url string, data map[string]string) ([]byte, error) {
 	client := &http.Client{Transport: transport()}
 	// fmt.Printf("%+v\n", FormData(data))
