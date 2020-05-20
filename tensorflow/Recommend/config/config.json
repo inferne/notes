@@ -1,0 +1,12 @@
+{
+    "mysql":{
+        "host": "",
+        "user": "root",
+        "pass": "123",
+        "port": 3306,
+        "name": "recommend_dev"
+    },
+    "expire":3,
+    "topk":100,
+    "embedding_dim":35
+}
